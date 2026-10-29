@@ -5,30 +5,40 @@ on:
   push:
     branches:
       - main
+  schedule:
+    - cron: "17 6 * * *"
+
+permissions:
+  contents: read
 
 jobs:
   run-agent:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 15
     steps:
       - name: Get repository
         uses: actions/checkout@v4
-
       - name: Install Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-
+          python-version: "3.11"
       - name: Install FFmpeg
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
-
       - name: Install dependencies
         run: |
           if [ -f requirements.txt ]; then
+            python -m pip install --upgrade pip
             pip install -r requirements.txt
           fi
-
       - name: Run agent
         run: python main.py
+      - name: Save generated Short and attribution
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: curios-short-${{ github.run_number }}
+          path: output/
+          if-no-files-found: warn
+          retention-days: 7
