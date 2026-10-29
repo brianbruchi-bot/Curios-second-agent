@@ -48,3 +48,28 @@ def create_clips(video_path, clip_seconds=30):
             "-t", str(clip_seconds),
             "-vf",
             "scale
+name: Curios Second Agent
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get project
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Run agent
+        run: python main.py
