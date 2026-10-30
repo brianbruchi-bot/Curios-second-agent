@@ -217,6 +217,16 @@ def test_upload_package_requires_video_and_matching_attribution(tmp_path, monkey
         upload_youtube.validate_upload_package()
 
 
+def test_public_upload_requires_separate_explicit_approval():
+    import upload_youtube
+
+    assert upload_youtube.validate_privacy_settings("private", False) == "private"
+    assert upload_youtube.validate_privacy_settings("unlisted", False) == "unlisted"
+    with pytest.raises(ValueError, match="Public publishing is locked"):
+        upload_youtube.validate_privacy_settings("public", False)
+    assert upload_youtube.validate_privacy_settings("public", True) == "public"
+
+
 def test_youtube_oauth_validation_rejects_incomplete_credentials():
     import upload_youtube
     import pytest
