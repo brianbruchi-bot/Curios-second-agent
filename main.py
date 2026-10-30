@@ -402,7 +402,7 @@ def main():
             "[background][foreground]overlay=(W-w)/2:(H-h)/2,"
             f"drawtext=fontfile={font}:textfile={title_file}:fontcolor=white:fontsize=42:"
             "borderw=3:bordercolor=black:x=(w-text_w)/2:y=90:box=1:boxcolor=black@0.45:boxborderw=16,"
-            f"subtitles=filename={captions_file}:force_style='FontName=DejaVu Sans,FontSize=8,"
+            f"subtitles=filename={captions_file}:force_style='FontName=DejaVu Sans,FontSize=15,"
             "Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=1,"
             "Shadow=0,Alignment=2,MarginV=115'[v]"
         )
@@ -411,7 +411,7 @@ def main():
             "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
             f"drawtext=fontfile={font}:textfile={title_file}:fontcolor=white:fontsize=42:"
             "borderw=3:bordercolor=black:x=(w-text_w)/2:y=90:box=1:boxcolor=black@0.45:boxborderw=16,"
-            f"subtitles=filename={captions_file}:force_style='FontName=DejaVu Sans,FontSize=8,"
+            f"subtitles=filename={captions_file}:force_style='FontName=DejaVu Sans,FontSize=15,"
             "Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=1,"
             "Shadow=0,Alignment=2,MarginV=115'[v]"
         )
