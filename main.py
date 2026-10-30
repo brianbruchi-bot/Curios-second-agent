@@ -54,7 +54,7 @@ def remember_success(state, video, narration, duration):
     state["last_success_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     save_learning(state)
 API = "https://commons.wikimedia.org/w/api.php"
-USER_AGENT = "CuriosSecondAgent/1.1 (automated short creation)"
+USER_AGENT = "CuriosSecondAgent/1.2 (https://github.com/brianbruchi-bot/Curios-second-agent; contact via repository issues)"
 VOICE = "en-US-GuyNeural"
 
 
