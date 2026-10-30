@@ -294,7 +294,11 @@ def download_suitable_video(learning, attempts=8):
         try:
             print(f"Candidate {attempt}/{attempts}:", video["title"])
             download_video(video["url"], source_path)
-            duration = duration_seconds(source_path)
+            if source_path.stat().st_size < 100_000:
+                print("Skipping suspiciously small media download:", video["title"])
+                duration = 0.0
+            else:
+                duration = duration_seconds(source_path)
             if duration >= 8:
                 try:
                     make_story(video)
