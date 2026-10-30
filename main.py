@@ -106,6 +106,19 @@ def is_english_metadata(title, description):
     return len(words & english_markers) >= 2 and not (words & foreign_markers)
 
 
+def media_info_is_usable(info):
+    file_size = int(info.get("size", 0) or 0)
+    if file_size < 1_000_000 or file_size > 80 * 1024 * 1024:
+        return False
+    duration_hint = info.get("length") or info.get("duration")
+    try:
+        if duration_hint is not None and float(duration_hint) < 8:
+            return False
+    except (TypeError, ValueError):
+        pass
+    return bool(info.get("url"))
+
+
 def find_open_video(learning):
     searches = [
         "filemime:video/webm wildlife",
@@ -129,15 +142,8 @@ def find_open_video(learning):
         for page in pages:
             info = (page.get("imageinfo") or [{}])[0]
             url = info.get("url", "")
-            file_size = int(info.get("size", 0) or 0)
-            if not url or file_size < 1_000_000 or file_size > 80 * 1024 * 1024:
+            if not media_info_is_usable(info):
                 continue
-            duration_hint = info.get("length") or info.get("duration")
-            try:
-                if duration_hint is not None and float(duration_hint) < 8:
-                    continue
-            except (TypeError, ValueError):
-                pass
             ext = info.get("extmetadata", {})
             license_name = clean_html(ext.get("LicenseShortName", {}).get("value", "See source page"))
             license_url = ext.get("LicenseUrl", {}).get("value", "")
