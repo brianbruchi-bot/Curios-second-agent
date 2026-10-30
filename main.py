@@ -390,15 +390,31 @@ def main():
     font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     title_file = str(title_path.resolve()).replace(":", "\\:")
     captions_file = str(captions_path.resolve()).replace("\\", "/").replace(":", "\\:")
-    video_filter = (
-        "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,"
-        "crop=1080:1920,"
-        f"drawtext=fontfile={font}:textfile={title_file}:fontcolor=white:fontsize=42:"
-        "borderw=3:bordercolor=black:x=(w-text_w)/2:y=90:box=1:boxcolor=black@0.45:boxborderw=16,"
-        f"subtitles=filename={captions_file}:force_style='FontName=DejaVu Sans,FontSize=8,"
-        "Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=1,"
-        "Shadow=0,Alignment=2,MarginV=115'[v]"
-    )
+    source_dimensions = probe_value(source_path, "stream=width,height").splitlines()
+    source_width, source_height = int(source_dimensions[0]), int(source_dimensions[1])
+    if source_width / source_height > 0.9:
+        # Preserve the full landscape frame over a softly blurred portrait background.
+        video_filter = (
+            "[0:v]split=2[bg][fg];"
+            "[bg]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
+            "boxblur=24:12,eq=brightness=-0.18[background];"
+            "[fg]scale=1080:1920:force_original_aspect_ratio=decrease[foreground];"
+            "[background][foreground]overlay=(W-w)/2:(H-h)/2,"
+            f"drawtext=fontfile={font}:textfile={title_file}:fontcolor=white:fontsize=42:"
+            "borderw=3:bordercolor=black:x=(w-text_w)/2:y=90:box=1:boxcolor=black@0.45:boxborderw=16,"
+            f"subtitles=filename={captions_file}:force_style='FontName=DejaVu Sans,FontSize=8,"
+            "Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=1,"
+            "Shadow=0,Alignment=2,MarginV=115'[v]"
+        )
+    else:
+        video_filter = (
+            "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
+            f"drawtext=fontfile={font}:textfile={title_file}:fontcolor=white:fontsize=42:"
+            "borderw=3:bordercolor=black:x=(w-text_w)/2:y=90:box=1:boxcolor=black@0.45:boxborderw=16,"
+            f"subtitles=filename={captions_file}:force_style='FontName=DejaVu Sans,FontSize=8,"
+            "Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=1,"
+            "Shadow=0,Alignment=2,MarginV=115'[v]"
+        )
     command = [
         "ffmpeg", "-y", "-ss", f"{start:.2f}", "-i", str(source_path),
         "-i", str(voice_path), "-t", f"{render_duration:.2f}",
