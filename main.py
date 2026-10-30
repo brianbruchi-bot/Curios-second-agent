@@ -129,10 +129,15 @@ def find_open_video(learning):
         for page in pages:
             info = (page.get("imageinfo") or [{}])[0]
             url = info.get("url", "")
-            if not url or info.get("size", 0) > 80 * 1024 * 1024:
+            file_size = int(info.get("size", 0) or 0)
+            if not url or file_size < 1_000_000 or file_size > 80 * 1024 * 1024:
                 continue
-            if info.get("length") and info["length"] < 8:
-                continue
+            duration_hint = info.get("length") or info.get("duration")
+            try:
+                if duration_hint is not None and float(duration_hint) < 8:
+                    continue
+            except (TypeError, ValueError):
+                pass
             ext = info.get("extmetadata", {})
             license_name = clean_html(ext.get("LicenseShortName", {}).get("value", "See source page"))
             license_url = ext.get("LicenseUrl", {}).get("value", "")
