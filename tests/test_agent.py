@@ -121,3 +121,10 @@ def test_source_filter_rejects_risky_how_to_metadata():
     assert not main.is_appropriate_source("Wood Chopping", "How to split wood with a chainsaw.")
     assert not main.is_appropriate_source("Lawn mower blade", "A tutorial about cutting.")
     assert main.is_appropriate_source("Red fox in a forest", "A red fox walks through the forest.")
+
+
+def test_make_story_removes_redundant_brand_and_year_from_title():
+    video = sample_video()
+    video["title"] = "File:mypubliclandsroadtrip 2016 Wildlife Watching, Cosumnes River Preserve.webm"
+    title, _ = main.make_story(video)
+    assert title == "Wildlife Watching, Cosumnes River Preserve"
