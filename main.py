@@ -188,7 +188,11 @@ def main():
     voice_duration = duration_seconds(voice_path)
     make_srt(narration, min(clip_duration, voice_duration), captions_path)
 
-    has_audio = bool(probe_value(source_path, "stream=codec_type").strip())
+    has_audio = subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "a:0",
+         "-show_entries", "stream=codec_type", "-of", "csv=p=0", str(source_path)],
+        capture_output=True, text=True, check=True,
+    ).stdout.strip() == "audio"
     font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     video_filter = (
         "scale=1080:1920:force_original_aspect_ratio=increase,"
@@ -206,7 +210,7 @@ def main():
     ]
     if has_audio:
         command += [
-            "-filter_complex", "[0:a]volume=0.12[bg];[1:a]volume=1.0[voice];[bg][voice]amix=inputs=2:duration=first:dropout_transition=2[aout]",
+            "-filter_complex", "[0:a]volume=0.12[bg];[1:a]volume=1.0[voice];[bg][voice]amix=inputs=2:duration=longest:dropout_transition=2[aout]",
             "-map", "0:v:0", "-map", "[aout]",
         ]
     else:
