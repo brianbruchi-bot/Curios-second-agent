@@ -98,41 +98,27 @@ def duration_seconds(path):
 
 
 def make_story(video):
-    source_text = (video["title"] + " " + video["description"]).lower()
-    if any(word in source_text for word in ("moss", "forest", "tree", "plant", "flower", "nature")):
-        title = "The Hidden World of Nature"
+    # Build narration only from the source's own title and description.
+    raw_title = re.sub(r"^File:", "", video["title"]).rsplit(".", 1)[0]
+    title = raw_title.replace("_", " ").strip()
+    description = re.sub(r"\\s+", " ", video.get("description", "")).strip()
+    if not description or description.lower() == title.lower():
         narration = (
-            "Here is something amazing about the natural world. "
-            "Moss has no true roots. It absorbs water and nutrients directly across its tiny leaves. "
-            "That helps it thrive on rocks, tree trunks, and damp ground. "
-            "Small as it looks, moss can create shelter and hold moisture for an entire miniature ecosystem. "
-            "Nature is full of quiet wonders."
-        )
-    elif any(word in source_text for word in ("bird", "animal", "wildlife", "fish", "insect")):
-        title = "Wildlife Is More Amazing Than You Think"
-        narration = (
-            "The natural world is full of surprising adaptations. "
-            "Animals survive by using senses, movement, and behaviors shaped over millions of years. "
-            "Even a quiet moment in the wild can reveal how carefully life adapts to its surroundings. "
-            "Look closer. There is usually more happening than we first notice."
-        )
-    elif "space" in source_text or "planet" in source_text:
-        title = "A Universe Full of Wonders"
-        narration = (
-            "Space is bigger and stranger than most of us can imagine. "
-            "The light reaching your eyes from distant stars began its journey years, centuries, or even longer ago. "
-            "When you look into the night sky, you are also looking back in time. "
-            "The universe is full of stories still waiting to be discovered."
+            f"Take a closer look at {title}. "
+            "This footage is shared through Wikimedia Commons. "
+            "Explore the original source and its creator in the description, "
+            "and keep looking for the details that make this subject interesting."
         )
     else:
-        title = "One Small Wonder of Science"
+        words = description.split()
+        summary = " ".join(words[:42]).rstrip(" ,.;:")
         narration = (
-            "Science reminds us that ordinary things can hide extraordinary ideas. "
-            "The world around us is shaped by patterns, forces, and processes that are easy to overlook. "
-            "Taking a closer look can turn a familiar scene into a fascinating discovery. "
-            "Stay curious. There is always more to learn."
+            f"Take a closer look at {title}. "
+            f"The source describes it this way: {summary}. "
+            "The original footage and creator are credited in the description. "
+            "Stay curious, and explore the source to learn more."
         )
-    return title, narration
+    return title[:80], narration
 
 
 def make_srt(text, duration, destination):
@@ -209,7 +195,7 @@ def main():
     )
     command = [
         "ffmpeg", "-y", "-ss", f"{start:.2f}", "-i", str(source_path),
-        "-i", str(voice_path), "-t", f"{clip_duration:.2f}",
+        "-i", str(voice_path), "-t", f"{render_duration:.2f}",
         "-vf", video_filter,
     ]
     if has_audio:
