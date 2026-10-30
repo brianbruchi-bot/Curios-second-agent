@@ -273,8 +273,14 @@ def download_suitable_video(learning, attempts=8):
             download_video(video["url"], source_path)
             duration = duration_seconds(source_path)
             if duration >= 8:
-                return video, source_path, duration
-            print(f"Skipping short source ({duration:.2f}s):", video["title"])
+                try:
+                    make_story(video)
+                except RuntimeError as exc:
+                    print("Skipping source with unusable narration metadata:", exc)
+                else:
+                    return video, source_path, duration
+            else:
+                print(f"Skipping short source ({duration:.2f}s):", video["title"])
         except (OSError, RuntimeError, subprocess.CalledProcessError) as exc:
             print("Skipping source that could not be validated:", exc)
         finally:
