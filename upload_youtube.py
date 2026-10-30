@@ -14,6 +14,7 @@ DESCRIPTION_FILE = Path("output/description.txt")
 ATTRIBUTION_FILE = Path("output/attribution.json")
 TOKEN_SECRET = os.environ.get("YOUTUBE_TOKEN_JSON", "")
 PRIVACY = os.environ.get("YOUTUBE_PRIVACY_STATUS", "private").lower()
+PUBLIC_PUBLISH_ENABLED = os.environ.get("YOUTUBE_PUBLIC_PUBLISH_ENABLED", "false").lower() == "true"
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
 
@@ -57,6 +58,8 @@ def main():
         raise RuntimeError("YOUTUBE_TOKEN_JSON is missing; YouTube upload is not authorized.")
     if PRIVACY not in {"private", "unlisted", "public"}:
         raise ValueError("YOUTUBE_PRIVACY_STATUS must be private, unlisted, or public.")
+    if PRIVACY == "public" and not PUBLIC_PUBLISH_ENABLED:
+        raise ValueError("Public publishing is locked. Set YOUTUBE_PUBLIC_PUBLISH_ENABLED=true only after a private test upload is reviewed.")
 
     token_info = validate_token_info(json.loads(TOKEN_SECRET))
     credentials = Credentials.from_authorized_user_info(token_info, SCOPES)
