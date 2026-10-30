@@ -9,6 +9,9 @@ from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
 VIDEO = Path("output/curios_short.mp4")
+TITLE_FILE = Path("output/title.txt")
+DESCRIPTION_FILE = Path("output/description.txt")
+ATTRIBUTION_FILE = Path("output/attribution.json")
 TOKEN_SECRET = os.environ.get("YOUTUBE_TOKEN_JSON", "")
 PRIVACY = os.environ.get("YOUTUBE_PRIVACY_STATUS", "private").lower()
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
@@ -24,9 +27,32 @@ def validate_token_info(token_info):
     return token_info
 
 
+def validate_upload_package():
+    if not VIDEO.exists() or VIDEO.stat().st_size < 100_000:
+        raise FileNotFoundError(f"Generated video is missing or too small: {VIDEO}")
+    if not TITLE_FILE.exists() or not TITLE_FILE.read_text(encoding="utf-8").strip():
+        raise ValueError("Generated YouTube title is missing or empty.")
+    if not DESCRIPTION_FILE.exists():
+        raise FileNotFoundError(f"Video description is missing: {DESCRIPTION_FILE}")
+    description = DESCRIPTION_FILE.read_text(encoding="utf-8").strip()
+    if not description or "Footage:" not in description or "License:" not in description:
+        raise ValueError("Video description must include source footage and license attribution.")
+    if not ATTRIBUTION_FILE.exists():
+        raise FileNotFoundError(f"Attribution metadata is missing: {ATTRIBUTION_FILE}")
+    attribution = json.loads(ATTRIBUTION_FILE.read_text(encoding="utf-8"))
+    required = ("source_page", "license", "creator", "video_title")
+    missing = [key for key in required if not attribution.get(key)]
+    if missing:
+        raise ValueError("Attribution metadata is incomplete: " + ", ".join(missing))
+    if attribution["source_page"] not in description:
+        raise ValueError("Video description does not contain the attributed source page.")
+    return description
+
+
 def main():
     if not VIDEO.exists():
         raise FileNotFoundError(f"Generated video not found: {VIDEO}")
+    validate_upload_package()
     if not TOKEN_SECRET:
         raise RuntimeError("YOUTUBE_TOKEN_JSON is missing; YouTube upload is not authorized.")
     if PRIVACY not in {"private", "unlisted", "public"}:
@@ -35,8 +61,8 @@ def main():
     token_info = validate_token_info(json.loads(TOKEN_SECRET))
     credentials = Credentials.from_authorized_user_info(token_info, SCOPES)
     youtube = build("youtube", "v3", credentials=credentials, cache_discovery=False)
-    title = Path("output/title.txt").read_text(encoding="utf-8").replace("\n", " ").strip()
-    description = Path("output/description.txt").read_text(encoding="utf-8").strip()
+    title = TITLE_FILE.read_text(encoding="utf-8").replace("\n", " ").strip()
+    description = DESCRIPTION_FILE.read_text(encoding="utf-8").strip()
     body = {
         "snippet": {
             "title": title[:100],
