@@ -60,7 +60,7 @@ def test_short_source_is_skipped_and_next_candidate_is_used(tmp_path, monkeypatc
     monkeypatch.setattr(main, "STATE_FILE", tmp_path / ".agent_state" / "learning.json")
     candidates = [
         {"url": "https://example.test/short.webm", "source_page": "short", "title": "Short"},
-        {"url": "https://example.test/valid.webm", "source_page": "valid", "title": "Valid"},
+        {"url": "https://example.test/valid.mp4", "source_page": "valid", "title": "Valid"},
     ]
 
     def fake_find(state):
@@ -71,7 +71,7 @@ def test_short_source_is_skipped_and_next_candidate_is_used(tmp_path, monkeypatc
 
     monkeypatch.setattr(main, "find_open_video", fake_find)
     monkeypatch.setattr(main, "download_video", fake_download)
-    monkeypatch.setattr(main, "duration_seconds", lambda path: 4.0 if "short" in path.name else 12.0)
+    monkeypatch.setattr(main, "duration_seconds", lambda path: 4.0 if path.suffix == ".webm" else 12.0)
 
     learning = main.load_learning()
     video, path, duration = main.download_suitable_video(learning, attempts=2)
