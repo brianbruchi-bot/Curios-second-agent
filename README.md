@@ -9,7 +9,7 @@ An automated workflow that finds reusable Wikimedia Commons video, creates a ver
 - Creates English narration from the source creator's description; it does not intentionally invent factual claims.
 - Generates a vertical 1080×1920 MP4 with voiceover, subtitles, title, and source attribution.
 - Validates video dimensions, audio/video streams, file size, and duration before treating a render as successful.
-- Stores a small learning history between GitHub Actions runs using the Actions cache.
+- Stores a small learning history between GitHub Actions runs using the Actions cache, avoids previously used sources, and favors underused search topics to diversify future Shorts.
 - Runs automated tests and Python checks on every push.
 - Uploads only when the owner configures YouTube OAuth credentials and explicitly enables uploads. Upload privacy is currently set to **private**.
 
