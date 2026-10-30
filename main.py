@@ -8,6 +8,7 @@ import time
 import textwrap
 import urllib.parse
 import urllib.request
+from urllib.error import HTTPError
 from pathlib import Path
 
 import edge_tts
@@ -57,10 +58,23 @@ USER_AGENT = "CuriosSecondAgent/1.1 (automated short creation)"
 VOICE = "en-US-GuyNeural"
 
 
+def open_with_retries(request, timeout, attempts=5):
+    for attempt in range(attempts):
+        try:
+            return urllib.request.urlopen(request, timeout=timeout)
+        except HTTPError as exc:
+            if exc.code not in {429, 500, 502, 503, 504} or attempt == attempts - 1:
+                raise
+            retry_after = exc.headers.get("Retry-After")
+            delay = min(30, int(retry_after)) if retry_after and retry_after.isdigit() else min(30, 2 ** (attempt + 1))
+            print(f"Source server returned HTTP {exc.code}; retrying in {delay}s.")
+            time.sleep(delay)
+
+
 def api_get(params):
     url = API + "?" + urllib.parse.urlencode(params)
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=30) as response:
+    with open_with_retries(request, timeout=30) as response:
         return json.loads(response.read().decode("utf-8"))
 
 
@@ -164,7 +178,7 @@ def find_open_video(learning):
 
 def download_video(url, destination):
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=120) as response, open(destination, "wb") as out:
+    with open_with_retries(request, timeout=120) as response, open(destination, "wb") as out:
         while True:
             chunk = response.read(1024 * 1024)
             if not chunk:
