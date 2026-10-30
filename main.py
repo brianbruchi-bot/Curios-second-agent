@@ -27,7 +27,25 @@ def api_get(params):
 
 def clean_html(value):
     value = re.sub(r"<[^>]+>", " ", value or "")
-    return re.sub(r"\\s+", " ", html.unescape(value)).strip()
+    return re.sub(r"\s+", " ", html.unescape(value)).strip()
+
+
+def is_english_metadata(title, description):
+    text = (title + " " + description).lower()
+    if not text or not text.isascii():
+        return False
+    words = set(re.findall(r"[a-z]+", text))
+    english_markers = {
+        "the", "and", "of", "in", "for", "with", "water", "wildlife",
+        "nature", "forest", "river", "ocean", "animal", "animals",
+        "science", "energy", "plant", "plants", "video", "this", "from",
+        "how", "what", "wild", "bird", "birds", "mountain", "climate",
+    }
+    foreign_markers = {
+        "pour", "avec", "dans", "des", "une", "les", "sur", "est",
+        "que", "par", "der", "die", "das", "und", "una", "del",
+    }
+    return len(words & english_markers) >= 2 and not (words & foreign_markers)
 
 
 def find_open_video():
@@ -61,6 +79,9 @@ def find_open_video():
             )):
                 continue
             title = page.get("title", "Wikimedia Commons video")
+            description = clean_html(ext.get("ImageDescription", {}).get("value", ""))
+            if not is_english_metadata(title, description):
+                continue
             source_page = "https://commons.wikimedia.org/wiki/" + urllib.parse.quote(title.replace(" ", "_"))
             return {
                 "title": title,
@@ -69,7 +90,7 @@ def find_open_video():
                 "license": license_name,
                 "license_url": license_url,
                 "artist": clean_html(ext.get("Artist", {}).get("value", "Creator not listed")),
-                "description": clean_html(ext.get("ImageDescription", {}).get("value", title)),
+                "description": description or title,
             }
     return None
 
@@ -98,27 +119,26 @@ def duration_seconds(path):
 
 
 def make_story(video):
-    # Build narration only from the source's own title and description.
     raw_title = re.sub(r"^File:", "", video["title"]).rsplit(".", 1)[0]
-    title = raw_title.replace("_", " ").strip()
-    description = re.sub(r"\\s+", " ", video.get("description", "")).strip()
+    raw_title = raw_title.replace("_", " ").strip()
+    title = " ".join(raw_title.split())
+    description = re.sub(r"\s+", " ", video.get("description", "")).strip()
+    description = re.sub(r"https?://\S+", "", description).strip(" -.;")
     if not description or description.lower() == title.lower():
         narration = (
-            f"Take a closer look at {title}. "
-            "This footage is shared through Wikimedia Commons. "
-            "Explore the original source and its creator in the description, "
-            "and keep looking for the details that make this subject interesting."
+            f"Here is a closer look at {title}. "
+            "Watch the details in the footage, and explore the original source "
+            "and creator credited below."
         )
     else:
-        words = description.split()
-        summary = " ".join(words[:42]).rstrip(" ,.;:")
+        summary = " ".join(description.split()[:24]).rstrip(" ,.;:")
         narration = (
-            f"Take a closer look at {title}. "
-            f"The source describes it this way: {summary}. "
-            "The original footage and creator are credited in the description. "
-            "Stay curious, and explore the source to learn more."
+            f"Here is a closer look at {title}. "
+            f"The source explains: {summary}. "
+            "The original creator and license are listed below."
         )
-    return title[:80], narration
+    short_title = title if len(title) <= 38 else title[:35].rsplit(" ", 1)[0] + "..."
+    return short_title, narration
 
 
 def make_srt(text, duration, destination):
@@ -188,8 +208,8 @@ def main():
     video_filter = (
         "scale=1080:1920:force_original_aspect_ratio=increase,"
         "crop=1080:1920,"
-        f"drawtext=fontfile={font}:textfile={title_file}:fontcolor=white:fontsize=54:"
-        "borderw=3:bordercolor=black:x=(w-text_w)/2:y=105:box=1:boxcolor=black@0.35:boxborderw=18,"
+        f"drawtext=fontfile={font}:textfile={title_file}:fontcolor=white:fontsize=42:"
+        "borderw=3:bordercolor=black:x=(w-text_w)/2:y=105:box=1:boxcolor=black@0.35:boxborderw=14,"
         f"subtitles=filename={captions_file}:force_style='FontName=DejaVu Sans,FontSize=17,"
         "Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,"
         "Shadow=1,Alignment=2,MarginV=150'"
