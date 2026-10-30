@@ -261,27 +261,45 @@ async def synthesize_speech(text, destination):
     await communicate.save(str(destination))
 
 
+def download_suitable_video(learning, attempts=8):
+    for attempt in range(1, attempts + 1):
+        video = find_open_video(learning)
+        if not video:
+            break
+        suffix = Path(urllib.parse.urlparse(video["url"]).path).suffix or ".video"
+        source_path = OUTPUT_DIR / ("source" + suffix)
+        try:
+            print(f"Candidate {attempt}/{attempts}:", video["title"])
+            download_video(video["url"], source_path)
+            duration = duration_seconds(source_path)
+            if duration >= 8:
+                return video, source_path, duration
+            print(f"Skipping short source ({duration:.2f}s):", video["title"])
+        except (OSError, RuntimeError, subprocess.CalledProcessError) as exc:
+            print("Skipping source that could not be validated:", exc)
+        finally:
+            if source_path.exists() and (not source_path.exists() or source_path.stat().st_size == 0):
+                source_path.unlink(missing_ok=True)
+        if video["source_page"] not in learning["seen_sources"]:
+            learning["seen_sources"].append(video["source_page"])
+            learning["seen_sources"] = learning["seen_sources"][-100:]
+            save_learning(learning)
+        source_path.unlink(missing_ok=True)
+    raise RuntimeError(f"No valid source video of at least 8 seconds found after {attempts} attempts.")
+
+
 def main():
     print("CURIOS SECOND AGENT — finding openly licensed footage")
     learning = load_learning()
     print("Learning memory:", learning.get("successful_runs", 0), "successful previous renders")
-    video = find_open_video(learning)
-    if not video:
-        raise RuntimeError("No suitable openly licensed video found.")
-
-    suffix = Path(urllib.parse.urlparse(video["url"]).path).suffix or ".video"
-    source_path = OUTPUT_DIR / ("source" + suffix)
+    video, source_path, total = download_suitable_video(learning)
     voice_path = OUTPUT_DIR / "narration.mp3"
     output_path = OUTPUT_DIR / "curios_short.mp4"
     title_path = OUTPUT_DIR / "title.txt"
     captions_path = OUTPUT_DIR / "captions.srt"
 
-    print("Selected:", video["title"])
-    download_video(video["url"], source_path)
-    total = duration_seconds(source_path)
+    print("Selected validated source:", video["title"])
     clip_duration = min(30.0, total)
-    if clip_duration < 8:
-        raise RuntimeError("Source video is too short.")
     start = random.uniform(0, max(0, total - clip_duration)) if total > clip_duration else 0
 
     title, narration = make_story(video)
