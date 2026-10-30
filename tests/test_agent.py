@@ -1,6 +1,8 @@
 import io
 import json
 import sys
+
+import pytest
 from urllib.error import HTTPError, URLError
 from pathlib import Path
 
