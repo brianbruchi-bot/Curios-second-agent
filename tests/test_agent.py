@@ -69,7 +69,7 @@ def test_short_source_is_skipped_and_next_candidate_is_used(tmp_path, monkeypatc
         return next((item for item in candidates if item["source_page"] not in state["seen_sources"]), None)
 
     def fake_download(url, destination):
-        destination.write_bytes(b"video-data")
+        destination.write_bytes(b"video-data" * 20000)
 
     monkeypatch.setattr(main, "find_open_video", fake_find)
     monkeypatch.setattr(main, "download_video", fake_download)
