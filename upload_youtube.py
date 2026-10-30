@@ -23,6 +23,39 @@ PUBLIC_PUBLISH_ENABLED = os.environ.get("YOUTUBE_PUBLIC_PUBLISH_ENABLED", "false
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
 
+def _join_wrapped_string_lines(value):
+    """Join token values that were line-wrapped by mobile copy/paste."""
+    output = []
+    quote = None
+    escaped = False
+    index = 0
+    while index < len(value):
+        char = value[index]
+        if quote:
+            if escaped:
+                output.append(char)
+                escaped = False
+            elif char == "\\\\":
+                output.append(char)
+                escaped = True
+            elif char == quote:
+                output.append(char)
+                quote = None
+            elif char in "\\r\\n":
+                # OAuth token fields never need literal line breaks. Mobile
+                # copy/paste sometimes inserts them into long quoted values.
+                while index + 1 < len(value) and value[index + 1] in "\\r\\n\\t ":
+                    index += 1
+            else:
+                output.append(char)
+        else:
+            output.append(char)
+            if char in ("\\\"", "'"):
+                quote = char
+        index += 1
+    return "".join(output)
+
+
 def parse_token_secret(raw):
     """Accept JSON and common copied JavaScript/Python object formatting."""
     # OAuth Playground and GitHub copy/paste can wrap the object in code fences
@@ -32,7 +65,7 @@ def parse_token_secret(raw):
     candidate = (raw or "").replace("\ufeff", "").replace("\u00a0", " ")
     candidate = candidate.replace("\u200b", "").replace("\u202f", " ").replace("\u200e", "").replace("\u200f", "")
     candidate = candidate.replace("“", '"').replace("”", '"').replace("‘", "'").replace("’", "'").strip()
-    first_brace, last_brace = candidate.find("{"), candidate.rfind("}")
+    candidate = _join_wrapped_string_lines(candidate)\n    first_brace, last_brace = candidate.find("{"), candidate.rfind("}")
     if first_brace >= 0 and last_brace > first_brace:
         candidate = candidate[first_brace:last_brace + 1]
 
