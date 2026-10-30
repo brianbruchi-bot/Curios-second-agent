@@ -1,75 +1,41 @@
-https://github.com/brianbruchi-bot/Curios-second-agent
-import argparse
-import subprocess
-import shutil
-from pathlib import Path
+# Curious Second — YouTube Shorts Agent
 
+An automated workflow that finds reusable Wikimedia Commons video, creates a vertical narrated Short, adds captions and attribution, validates the output, and can upload to YouTube after the channel owner authorizes it.
 
-def create_clips(video_path, clip_seconds=30):
-    video = Path(video_path)
+## What it currently does
 
-    if not video.exists():
-        print(f"Error: video not found: {video}")
-        return
+- Searches Wikimedia Commons for footage with public-domain, CC0, or CC BY 3.0/4.0 licenses.
+- Rejects sources with weak or non-English descriptions and avoids sources already recorded in its learning memory.
+- Creates English narration from the source creator's description; it does not intentionally invent factual claims.
+- Generates a vertical 1080×1920 MP4 with voiceover, subtitles, title, and source attribution.
+- Validates video dimensions, audio/video streams, file size, and duration before treating a render as successful.
+- Stores a small learning history between GitHub Actions runs using the Actions cache.
+- Runs automated tests and Python checks on every push.
+- Uploads only when the owner configures YouTube OAuth credentials and explicitly enables uploads. Upload privacy is currently set to **private**.
 
-    if not shutil.which("ffmpeg"):
-        print("Error: FFmpeg is not installed.")
-        return
+## Run it
 
-    output_dir = Path("clips")
-    output_dir.mkdir(exist_ok=True)
+Open the repository's **Actions** tab, choose **Run YouTube Clipping Agent**, then select **Run workflow**. A daily scheduled run is also configured.
 
-    duration_result = subprocess.run(
-        [
-            "ffprobe", "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1",
-            str(video)
-        ],
-        capture_output=True,
-        text=True
-    )
+Generated MP4 and metadata are saved as a workflow artifact for seven days.
 
-    if duration_result.returncode != 0:
-        print("Could not read video duration.")
-        return
+## YouTube connection
 
-    duration = float(duration_result.stdout.strip())
-    start = 0
-    clip_number = 1
+YouTube upload is deliberately disabled until OAuth is configured. The YouTube Data API requires the channel owner to authorize the app; service-account-only access is not supported for ordinary personal channels. Never put Google passwords, OAuth tokens, or client secrets in source files or chat messages. Store credentials only in GitHub Actions Secrets.
 
-    while start < duration:
-        output_file = output_dir / f"clip_{clip_number:03}.mp4"
+Required repository secrets:
+- `YOUTUBE_TOKEN_JSON` — OAuth authorized-user JSON with a refresh token.
+- `YOUTUBE_UPLOAD_ENABLED` — set to the exact text `true` only after testing.
 
-        command = [
-            "ffmpeg", "-y",
-            "-ss", str(start),
-            "-i", str(video),
-            "-t", str(clip_seconds),
-            "-vf",
-            "scale
-name: Curios Second Agent
+The workflow currently uploads privately. Change to public only after the owner explicitly chooses that setting.
 
-on:
-  workflow_dispatch:
+## Learning
 
-jobs:
-  run-agent:
-    runs-on: ubuntu-latest
+The agent keeps a bounded history of source pages and successful render metadata so it can avoid repeating footage and track its own production history. This is not yet audience-based learning: view duration, retention, likes, and comments require YouTube Analytics authorization and actual published video data. No performance-based optimization is claimed until that connection is implemented and tested.
 
-    steps:
-      - name: Get project
-        uses: actions/checkout@v4
+## Current limitations
 
-      - name: Install Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install FFmpeg
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-
-      - name: Run agent
-        run: python main.py
+- A human must complete the one-time Google OAuth authorization.
+- Source footage and metadata quality vary; generated Shorts must still be reviewed before public release.
+- Narration is grounded in the source description, not independent fact-checking.
+- The agent cannot guarantee views, subscribers, or revenue.
