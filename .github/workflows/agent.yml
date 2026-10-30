@@ -55,6 +55,7 @@ jobs:
           YOUTUBE_UPLOAD_ENABLED: ${{ secrets.YOUTUBE_UPLOAD_ENABLED }}
           YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
           YOUTUBE_PRIVACY_STATUS: ${{ secrets.YOUTUBE_PRIVACY_STATUS }}
+          YOUTUBE_PUBLIC_PUBLISH_ENABLED: ${{ secrets.YOUTUBE_PUBLIC_PUBLISH_ENABLED }}
         run: |
           if [ "$YOUTUBE_UPLOAD_ENABLED" = "true" ] && [ -n "$YOUTUBE_TOKEN_JSON" ]; then
             python upload_youtube.py
