@@ -14,6 +14,16 @@ PRIVACY = os.environ.get("YOUTUBE_PRIVACY_STATUS", "private").lower()
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
 
+def validate_token_info(token_info):
+    if not isinstance(token_info, dict):
+        raise ValueError('YOUTUBE_TOKEN_JSON must contain a JSON object.')
+    required = ('client_id', 'client_secret', 'refresh_token', 'token_uri')
+    missing = [key for key in required if not token_info.get(key)]
+    if missing:
+        raise ValueError('YouTube OAuth data is missing required fields: ' + ', '.join(missing))
+    return token_info
+
+
 def main():
     if not VIDEO.exists():
         raise FileNotFoundError(f"Generated video not found: {VIDEO}")
@@ -22,7 +32,7 @@ def main():
     if PRIVACY not in {"private", "unlisted", "public"}:
         raise ValueError("YOUTUBE_PRIVACY_STATUS must be private, unlisted, or public.")
 
-    token_info = json.loads(TOKEN_SECRET)
+    token_info = validate_token_info(json.loads(TOKEN_SECRET))
     credentials = Credentials.from_authorized_user_info(token_info, SCOPES)
     youtube = build("youtube", "v3", credentials=credentials, cache_discovery=False)
     title = Path("output/title.txt").read_text(encoding="utf-8").replace("\n", " ").strip()
@@ -43,7 +53,7 @@ def main():
     request = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
     response = None
     while response is None:
-        _, response = request.next_chunk()
+        _, response = request.next_chunk(num_retries=5)
     video_id = response.get("id")
     if not video_id:
         raise RuntimeError(f"YouTube did not return a video ID: {response}")
