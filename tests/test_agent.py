@@ -168,3 +168,12 @@ def test_http_retry_handles_temporary_network_error(monkeypatch):
     response = main.open_with_retries(object(), timeout=1, attempts=2)
     assert response.read() == b"ok"
     assert calls["count"] == 2
+
+
+def test_reusable_license_allowlist_and_restrictions():
+    assert main.is_reusable_license('CC BY 4.0')
+    assert main.is_reusable_license('Public domain')
+    assert main.is_reusable_license('CC0')
+    assert not main.is_reusable_license('CC BY-NC 4.0')
+    assert not main.is_reusable_license('CC BY-ND 4.0')
+    assert not main.is_reusable_license('All rights reserved')
