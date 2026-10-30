@@ -106,6 +106,18 @@ def is_english_metadata(title, description):
     return len(words & english_markers) >= 2 and not (words & foreign_markers)
 
 
+def is_appropriate_source(title, description):
+    title_lower = title.lower()
+    description_lower = description.lower()
+    if any(term in title_lower for term in ("video by", "footage of", "youtube", "promotional")):
+        return False
+    risky_terms = (
+        "how to", "tutorial", "lawn mower", "chainsaw", "wood chopping",
+        "cut through", "blade of", "sawing", "knife", "power tool",
+    )
+    return not any(term in title_lower or term in description_lower for term in risky_terms)
+
+
 def media_info_is_usable(info):
     file_size = int(info.get("size", 0) or 0)
     if file_size < 600_000 or file_size > 80 * 1024 * 1024:
@@ -176,16 +188,10 @@ def find_open_video(learning):
             description = clean_html(ext.get("ImageDescription", {}).get("value", ""))
             # Reject title-only metadata: it produced generic narration in earlier tests.
             title_lower = title.lower()
-            description_lower = description.lower()
-            if len(description) < 180 or description_lower.startswith(title_lower):
+            if len(description) < 180 or description.lower().startswith(title_lower):
                 continue
-            if any(term in title_lower for term in ("video by", "footage of", "youtube", "promotional")):
-                continue
-            # Exclude risky how-to footage and tool instructions that can be misleading out of context.
-            if any(term in title_lower or term in description_lower for term in (
-                "how to", "tutorial", "lawn mower", "chainsaw", "wood chopping",
-                "cut through", "blade of", "sawing", "knife", "power tool",
-            )):
+            # Avoid risky how-to footage and tool instructions that can mislead out of context.
+            if not is_appropriate_source(title, description):
                 continue
             if not is_english_metadata(title, description):
                 continue
