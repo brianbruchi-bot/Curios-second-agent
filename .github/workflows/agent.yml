@@ -57,7 +57,7 @@ jobs:
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_PRIVACY_STATUS: ${{ secrets.YOUTUBE_PRIVACY_STATUS }}
+          YOUTUBE_PRIVACY_STATUS: ${{ secrets.YOUTUBE_PRIVACY_STATUS || 'private' }}
           YOUTUBE_PUBLIC_PUBLISH_ENABLED: ${{ secrets.YOUTUBE_PUBLIC_PUBLISH_ENABLED }}
         run: |
           UPLOAD_FLAG="$(printf '%s' "$YOUTUBE_UPLOAD_ENABLED" | tr '[:upper:]' '[:lower:]' | xargs)"
