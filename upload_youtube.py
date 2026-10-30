@@ -65,10 +65,10 @@ def parse_token_secret(raw):
     candidate = (raw or "").replace("\ufeff", "").replace("\u00a0", " ")
     candidate = candidate.replace("\u200b", "").replace("\u202f", " ").replace("\u200e", "").replace("\u200f", "")
     candidate = candidate.replace("“", '"').replace("”", '"').replace("‘", "'").replace("’", "'").strip()
-    candidate = _join_wrapped_string_lines(candidate)
     first_brace, last_brace = candidate.find("{"), candidate.rfind("}")
     if first_brace >= 0 and last_brace > first_brace:
         candidate = candidate[first_brace:last_brace + 1]
+    candidate = _join_wrapped_string_lines(candidate)
 
     try:
         data = json.loads(candidate)
