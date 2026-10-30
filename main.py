@@ -283,9 +283,6 @@ def download_suitable_video(learning, attempts=8):
                 print(f"Skipping short source ({duration:.2f}s):", video["title"])
         except (OSError, RuntimeError, subprocess.CalledProcessError) as exc:
             print("Skipping source that could not be validated:", exc)
-        finally:
-            if source_path.exists() and (not source_path.exists() or source_path.stat().st_size == 0):
-                source_path.unlink(missing_ok=True)
         if video["source_page"] not in learning["seen_sources"]:
             learning["seen_sources"].append(video["source_page"])
             learning["seen_sources"] = learning["seen_sources"][-100:]
