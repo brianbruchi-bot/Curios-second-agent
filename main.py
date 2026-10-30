@@ -3,12 +3,13 @@ import html
 import json
 import random
 import re
+import socket
 import subprocess
 import time
 import textwrap
 import urllib.parse
 import urllib.request
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from pathlib import Path
 
 import edge_tts
@@ -73,6 +74,12 @@ def open_with_retries(request, timeout, attempts=5):
             retry_after = exc.headers.get("Retry-After")
             delay = min(30, int(retry_after)) if retry_after and retry_after.isdigit() else min(30, 2 ** (attempt + 1))
             print(f"Source server returned HTTP {exc.code}; retrying in {delay}s.")
+            time.sleep(delay)
+        except (URLError, TimeoutError, socket.timeout) as exc:
+            if attempt == attempts - 1:
+                raise
+            delay = min(30, 2 ** (attempt + 1))
+            print('Temporary network error; retrying in ' + str(delay) + 's.')
             time.sleep(delay)
 
 
