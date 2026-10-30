@@ -94,6 +94,7 @@ def test_short_source_is_skipped_and_next_candidate_is_used(tmp_path, monkeypatc
     monkeypatch.setattr(main, "find_open_video", fake_find)
     monkeypatch.setattr(main, "download_video", fake_download)
     monkeypatch.setattr(main, "duration_seconds", lambda path: 4.0 if path.suffix == ".webm" else 12.0)
+    monkeypatch.setattr(main, "probe_value", lambda path, entry: "1280\\n720")
 
     learning = main.load_learning()
     video, path, duration = main.download_suitable_video(learning, attempts=2)
