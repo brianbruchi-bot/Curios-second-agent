@@ -1,7 +1,7 @@
 import io
 import json
 import sys
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -152,3 +152,19 @@ def test_long_source_title_uses_a_complete_short_headline():
     title, _ = main.make_story(video)
     assert title == "Hot Intergalactic Gas"
     assert len(title) <= 52
+
+
+def test_http_retry_handles_temporary_network_error(monkeypatch):
+    calls = {"count": 0}
+
+    def fake_urlopen(request, timeout):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise URLError("temporary connection failure")
+        return io.BytesIO(b"ok")
+
+    monkeypatch.setattr(main.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(main.time, "sleep", lambda delay: None)
+    response = main.open_with_retries(object(), timeout=1, attempts=2)
+    assert response.read() == b"ok"
+    assert calls["count"] == 2
