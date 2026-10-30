@@ -13,6 +13,9 @@ TITLE_FILE = Path("output/title.txt")
 DESCRIPTION_FILE = Path("output/description.txt")
 ATTRIBUTION_FILE = Path("output/attribution.json")
 TOKEN_SECRET = os.environ.get("YOUTUBE_TOKEN_JSON", "")
+REFRESH_TOKEN = os.environ.get("YOUTUBE_REFRESH_TOKEN", "")
+OAUTH_CLIENT_ID = os.environ.get("YOUTUBE_CLIENT_ID", "")
+OAUTH_CLIENT_SECRET = os.environ.get("YOUTUBE_CLIENT_SECRET", "")
 PRIVACY = os.environ.get("YOUTUBE_PRIVACY_STATUS", "private").lower()
 PUBLIC_PUBLISH_ENABLED = os.environ.get("YOUTUBE_PUBLIC_PUBLISH_ENABLED", "false").lower() == "true"
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
@@ -62,12 +65,22 @@ def main():
     if not VIDEO.exists():
         raise FileNotFoundError(f"Generated video not found: {VIDEO}")
     validate_upload_package()
-    if not TOKEN_SECRET:
-        raise RuntimeError("YOUTUBE_TOKEN_JSON is missing; YouTube upload is not authorized.")
     validate_privacy_settings(PRIVACY, PUBLIC_PUBLISH_ENABLED)
 
-    token_info = validate_token_info(json.loads(TOKEN_SECRET))
-    credentials = Credentials.from_authorized_user_info(token_info, SCOPES)
+    if TOKEN_SECRET:
+        token_info = validate_token_info(json.loads(TOKEN_SECRET))
+        credentials = Credentials.from_authorized_user_info(token_info, SCOPES)
+    elif REFRESH_TOKEN and OAUTH_CLIENT_ID and OAUTH_CLIENT_SECRET:
+        credentials = Credentials(
+            token=None,
+            refresh_token=REFRESH_TOKEN,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=OAUTH_CLIENT_ID,
+            client_secret=OAUTH_CLIENT_SECRET,
+            scopes=SCOPES,
+        )
+    else:
+        raise RuntimeError("YouTube OAuth is incomplete. Configure YOUTUBE_TOKEN_JSON, or YOUTUBE_REFRESH_TOKEN plus YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET.")
     youtube = build("youtube", "v3", credentials=credentials, cache_discovery=False)
     title = TITLE_FILE.read_text(encoding="utf-8").replace("\n", " ").strip()
     description = DESCRIPTION_FILE.read_text(encoding="utf-8").strip()
