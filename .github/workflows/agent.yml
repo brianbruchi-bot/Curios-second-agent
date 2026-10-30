@@ -60,7 +60,8 @@ jobs:
           YOUTUBE_PRIVACY_STATUS: ${{ secrets.YOUTUBE_PRIVACY_STATUS }}
           YOUTUBE_PUBLIC_PUBLISH_ENABLED: ${{ secrets.YOUTUBE_PUBLIC_PUBLISH_ENABLED }}
         run: |
-          if [ "$YOUTUBE_UPLOAD_ENABLED" = "true" ] && { [ -n "$YOUTUBE_TOKEN_JSON" ] || { [ -n "$YOUTUBE_REFRESH_TOKEN" ] && [ -n "$YOUTUBE_CLIENT_ID" ] && [ -n "$YOUTUBE_CLIENT_SECRET" ]; }; }; then
+          UPLOAD_FLAG="$(printf '%s' "$YOUTUBE_UPLOAD_ENABLED" | tr '[:upper:]' '[:lower:]' | xargs)"
+          if { [ "$UPLOAD_FLAG" = "true" ] || [ "$UPLOAD_FLAG" = "enabled" ] || [ "$UPLOAD_FLAG" = "yes" ] || [ "$UPLOAD_FLAG" = "1" ]; } && { [ -n "$YOUTUBE_TOKEN_JSON" ] || { [ -n "$YOUTUBE_REFRESH_TOKEN" ] && [ -n "$YOUTUBE_CLIENT_ID" ] && [ -n "$YOUTUBE_CLIENT_SECRET" ]; }; }; then
             python upload_youtube.py
           else
             echo "YouTube upload skipped: OAuth secret and explicit enable flag are not configured."
