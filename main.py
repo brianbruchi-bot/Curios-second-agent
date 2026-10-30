@@ -172,7 +172,8 @@ def main():
     title_path.write_text(title, encoding="utf-8")
     asyncio.run(synthesize_speech(narration, voice_path))
     voice_duration = duration_seconds(voice_path)
-    make_srt(narration, min(clip_duration, voice_duration), captions_path)
+    render_duration = min(clip_duration, voice_duration)
+    make_srt(narration, render_duration, captions_path)
     if not captions_path.exists() or captions_path.stat().st_size == 0:
         raise RuntimeError("Subtitle file was not created.")
 
