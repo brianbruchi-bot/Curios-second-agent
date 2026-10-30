@@ -141,3 +141,14 @@ def test_listen_hook_requires_a_standalone_sound_word():
     }
     _, narration = main.make_story(video)
     assert narration.startswith("Take a closer look:")
+
+
+def test_long_source_title_uses_a_complete_short_headline():
+    video = sample_video()
+    video["title"] = (
+        'File:Hot Intergalactic Gas- Chandra Discovers "Rivers Of Gravity" '
+        "That Define Cosmic Landscape (2002-igm).webm"
+    )
+    title, _ = main.make_story(video)
+    assert title == "Hot Intergalactic Gas"
+    assert len(title) <= 52
