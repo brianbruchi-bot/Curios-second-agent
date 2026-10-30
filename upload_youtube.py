@@ -77,11 +77,14 @@ def validate_token_info(token_info):
             "YouTube OAuth data is missing required fields: " + ", ".join(missing)
             + ". The refresh token and OAuth client ID/secret are required for automatic uploads."
         )
-    scopes = token_info.get("scopes", [])
-    if isinstance(scopes, str):
-        scopes = scopes.split()
-    if "https://www.googleapis.com/auth/youtube.upload" not in scopes:
-        raise ValueError("OAuth token is missing the YouTube upload scope.")
+    # Older authorized-user token objects may omit scopes; the uploader supplies
+    # the required scope explicitly to google-auth. If scopes are present, validate them.
+    scopes = token_info.get("scopes")
+    if scopes:
+        if isinstance(scopes, str):
+            scopes = scopes.split()
+        if "https://www.googleapis.com/auth/youtube.upload" not in scopes:
+            raise ValueError("OAuth token is missing the YouTube upload scope.")
     return token_info
 
 
