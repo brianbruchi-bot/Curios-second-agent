@@ -26,10 +26,11 @@ def load_learning():
         if not isinstance(state, dict):
             raise ValueError("Learning state must be an object")
     except (OSError, ValueError, json.JSONDecodeError):
-        state = {"seen_sources": [], "successful_runs": 0, "source_scores": {}}
+        state = {"seen_sources": [], "successful_runs": 0, "source_scores": {}, "query_counts": {}}
     state.setdefault("seen_sources", [])
     state.setdefault("successful_runs", 0)
     state.setdefault("source_scores", {})
+    state.setdefault("query_counts", {})
     return state
 
 
@@ -44,6 +45,10 @@ def remember_success(state, video, narration, duration):
     seen.append(source)
     state["seen_sources"] = seen[-100:]
     state["successful_runs"] = int(state.get("successful_runs", 0)) + 1
+    query = video.get("search_query")
+    if query:
+        counts = state.setdefault("query_counts", {})
+        counts[query] = int(counts.get(query, 0)) + 1
     scores = state.setdefault("source_scores", {})
     scores[source] = {
         "title": video["title"],
@@ -111,6 +116,8 @@ def find_open_video(learning):
         "filemime:video/mp4 underwater",
     ]
     random.shuffle(searches)
+    counts = learning.get("query_counts", {})
+    searches.sort(key=lambda item: counts.get(item, 0))
     for query in searches:
         data = api_get({
             "action": "query", "format": "json", "generator": "search",
@@ -166,6 +173,7 @@ def find_open_video(learning):
                 continue
             return {
                 "title": title,
+                "search_query": query,
                 "url": url,
                 "source_page": source_page,
                 "license": license_name,
