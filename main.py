@@ -290,7 +290,7 @@ def make_story(video):
     if len(body.split()) < 27:
         raise RuntimeError("Source description is too short for an 8-second narration; trying another source.")
     # Use a hook that stays faithful to the creator's description.
-    hook = "Listen closely:" if re.search(r"sound|sing|call|birdsong|song", body, re.I) else "Take a closer look:"
+    hook = "Listen closely:" if re.search(r"\\b(sound|sing|call|birdsong|song)\\b", body, re.I) else "Take a closer look:"
     narration = f"{hook} {body}"
     if not narration.endswith((".", "!", "?")):
         narration += "."
