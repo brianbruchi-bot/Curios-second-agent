@@ -28,6 +28,14 @@ def validate_token_info(token_info):
     return token_info
 
 
+def validate_privacy_settings(privacy, public_enabled):
+    if privacy not in {"private", "unlisted", "public"}:
+        raise ValueError("YOUTUBE_PRIVACY_STATUS must be private, unlisted, or public.")
+    if privacy == "public" and not public_enabled:
+        raise ValueError("Public publishing is locked. Set YOUTUBE_PUBLIC_PUBLISH_ENABLED=true only after a private test upload is reviewed.")
+    return privacy
+
+
 def validate_upload_package():
     if not VIDEO.exists() or VIDEO.stat().st_size < 100_000:
         raise FileNotFoundError(f"Generated video is missing or too small: {VIDEO}")
@@ -56,10 +64,7 @@ def main():
     validate_upload_package()
     if not TOKEN_SECRET:
         raise RuntimeError("YOUTUBE_TOKEN_JSON is missing; YouTube upload is not authorized.")
-    if PRIVACY not in {"private", "unlisted", "public"}:
-        raise ValueError("YOUTUBE_PRIVACY_STATUS must be private, unlisted, or public.")
-    if PRIVACY == "public" and not PUBLIC_PUBLISH_ENABLED:
-        raise ValueError("Public publishing is locked. Set YOUTUBE_PUBLIC_PUBLISH_ENABLED=true only after a private test upload is reviewed.")
+    validate_privacy_settings(PRIVACY, PUBLIC_PUBLISH_ENABLED)
 
     token_info = validate_token_info(json.loads(TOKEN_SECRET))
     credentials = Credentials.from_authorized_user_info(token_info, SCOPES)
