@@ -187,6 +187,8 @@ def main():
     asyncio.run(synthesize_speech(narration, voice_path))
     voice_duration = duration_seconds(voice_path)
     make_srt(narration, min(clip_duration, voice_duration), captions_path)
+    if not captions_path.exists() or captions_path.stat().st_size == 0:
+        raise RuntimeError("Subtitle file was not created.")
 
     has_audio = subprocess.run(
         ["ffprobe", "-v", "error", "-select_streams", "a:0",
@@ -194,12 +196,14 @@ def main():
         capture_output=True, text=True, check=True,
     ).stdout.strip() == "audio"
     font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    title_file = str(title_path.resolve()).replace(":", "\\:")
+    captions_file = str(captions_path.resolve()).replace(":", "\\:")
     video_filter = (
         "scale=1080:1920:force_original_aspect_ratio=increase,"
         "crop=1080:1920,"
-        f"drawtext=fontfile={font}:textfile={title_path}:fontcolor=white:fontsize=54:"
+        f"drawtext=fontfile={font}:textfile={title_file}:fontcolor=white:fontsize=54:"
         "borderw=3:bordercolor=black:x=(w-text_w)/2:y=105:box=1:boxcolor=black@0.35:boxborderw=18,"
-        f"subtitles={captions_path}:force_style='FontName=DejaVu Sans,FontSize=17,"
+        f"subtitles={captions_file}:force_style='FontName=DejaVu Sans,FontSize=17,"
         "Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,"
         "Shadow=1,Alignment=2,MarginV=150'"
     )
