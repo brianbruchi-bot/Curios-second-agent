@@ -214,7 +214,16 @@ def make_story(video):
     description = re.sub(r"\s+", " ", video.get("description", "")).strip()
     description = re.sub(r"https?://\S+", "", description).strip(" -.;")
     # The narration is based on the creator's actual description, not invented facts.
-    sentences = re.split(r"(?<=[.!?])\s+", description)
+    raw_sentences = re.split(r"(?<=[.!?])\s+", description)
+    sentences = []
+    for sentence in raw_sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        if sentences and sentence[0].islower():
+            sentences[-1] = sentences[-1].rstrip(".!?") + ", " + sentence
+        else:
+            sentences.append(sentence[0].upper() + sentence[1:])
     sentences = [sentence for sentence in sentences if len(sentence.split()) >= 7]
     selected_sentences = []
     for sentence in sentences:
