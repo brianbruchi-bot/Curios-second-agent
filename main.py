@@ -151,9 +151,9 @@ def make_srt(text, duration, destination):
             minutes, millis = divmod(millis, 60000)
             seconds_int, millis = divmod(millis, 1000)
             return f"{hours:02}:{minutes:02}:{seconds_int:02},{millis:03}"
-        entries.append(f"{len(entries) + 1}\\n{stamp(start)} --> {stamp(end)}\\n{group}\\n")
+        entries.append(f"{len(entries) + 1}\n{stamp(start)} --> {stamp(end)}\n{group}\n")
         cursor = end
-    destination.write_text("\\n".join(entries), encoding="utf-8")
+    destination.write_text("\n".join(entries), encoding="utf-8")
 
 
 async def synthesize_speech(text, destination):
@@ -197,13 +197,13 @@ def main():
     ).stdout.strip() == "audio"
     font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     title_file = str(title_path.resolve()).replace(":", "\\:")
-    captions_file = str(captions_path.resolve()).replace(":", "\\:")
+    captions_file = "output/captions.srt"
     video_filter = (
         "scale=1080:1920:force_original_aspect_ratio=increase,"
         "crop=1080:1920,"
         f"drawtext=fontfile={font}:textfile={title_file}:fontcolor=white:fontsize=54:"
         "borderw=3:bordercolor=black:x=(w-text_w)/2:y=105:box=1:boxcolor=black@0.35:boxborderw=18,"
-        f"subtitles={captions_file}:force_style='FontName=DejaVu Sans,FontSize=17,"
+        f"subtitles=filename={captions_file}:force_style='FontName=DejaVu Sans,FontSize=17,"
         "Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,"
         "Shadow=1,Alignment=2,MarginV=150'"
     )
@@ -239,9 +239,9 @@ def main():
         json.dumps(attribution, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     description = (
-        f"{title}\\n\\n{narration}\\n\\n"
-        f"Footage: {video['source_page']}\\nCreator: {video['artist']}\\n"
-        f"License: {video['license']} {video['license_url']}\\n"
+        f"{title}\n\n{narration}\n\n"
+        f"Footage: {video['source_page']}\nCreator: {video['artist']}\n"
+        f"License: {video['license']} {video['license_url']}\n"
         "#shorts #curiosity #nature"
     )
     (OUTPUT_DIR / "description.txt").write_text(description, encoding="utf-8")
