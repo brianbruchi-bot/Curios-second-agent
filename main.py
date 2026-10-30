@@ -260,12 +260,21 @@ def validate_render(path, expected_duration):
 def make_story(video):
     raw_title = re.sub(r"^File:", "", video["title"]).rsplit(".", 1)[0]
     raw_title = re.sub(r"\([^)]{0,80}\)", "", raw_title)
-    raw_title = raw_title.replace("_", " ").replace("-", " ").strip()
+    raw_title = raw_title.replace("_", " ")
     raw_title = re.sub(r"\bmypubliclandsroadtrip\b", "", raw_title, flags=re.I)
     raw_title = re.sub(r"\b20\d{2}\b", "", raw_title)
+    if len(raw_title) > 52:
+        parts = re.split(r"\s*[-–—]\s*", raw_title, maxsplit=1)
+        concise = next((part.strip() for part in parts if len(part.strip()) >= 8), "")
+        if concise:
+            raw_title = concise
+    raw_title = raw_title.replace("-", " ")
     title = " ".join(raw_title.split())
     title = re.sub(r"\s+", " ", title).strip(" .,_-")
     title = re.sub(r"\b(video|footage|clip)\b", "", title, flags=re.I).strip()
+    title = title.replace('"', "")
+    if len(title) > 52:
+        title = title[:52].rsplit(" ", 1)[0].rstrip(" ,;:-")
     description = re.sub(r"\s+", " ", video.get("description", "")).strip()
     description = re.sub(r"https?://\S+", "", description).strip(" -.;")
     # The narration is based on the creator's actual description, not invented facts.
