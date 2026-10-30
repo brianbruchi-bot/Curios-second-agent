@@ -78,3 +78,15 @@ def test_short_source_is_skipped_and_next_candidate_is_used(tmp_path, monkeypatc
     assert video["source_page"] == "valid"
     assert duration == 12.0
     assert path.exists()
+
+
+def test_make_story_joins_lowercase_sentence_fragments():
+    video = {
+        "title": "File:Wildlife center.webm",
+        "description": (
+            "A broadcast from the Wildlife Center of Texas. "
+            "a wildlife rehabilitation center, reaches young patients at the hospital."
+        ),
+    }
+    _, narration = main.make_story(video)
+    assert "Texas, a wildlife rehabilitation center" in narration
