@@ -26,14 +26,14 @@ def find_open_video():
         data = api_get({
             "action": "query", "format": "json", "generator": "search",
             "gsrsearch": query, "gsrnamespace": 6, "gsrlimit": 20,
-            "prop": "imageinfo", "iiprop": "url|extmetadata|size"
+            "prop": "imageinfo", "iiprop": "url|extmetadata|size|length"
         })
         pages = list(data.get("query", {}).get("pages", {}).values())
         random.shuffle(pages)
         for page in pages:
             info = (page.get("imageinfo") or [{}])[0]
             url = info.get("url", "")
-            if not url or info.get("size", 0) > 80 * 1024 * 1024:
+            if not url or info.get("size", 0) > 80 * 1024 * 1024 or info.get("length", 0) < 5:
                 continue
             ext = info.get("extmetadata", {})
             license_name = ext.get("LicenseShortName", {}).get("value", "See source page")
