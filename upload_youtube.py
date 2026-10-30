@@ -1,5 +1,7 @@
+import ast
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -21,13 +23,65 @@ PUBLIC_PUBLISH_ENABLED = os.environ.get("YOUTUBE_PUBLIC_PUBLISH_ENABLED", "false
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
 
+def parse_token_secret(raw):
+    """Accept JSON and common copied JavaScript/Python object formatting."""
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        # Quote unquoted object keys, then accept either JSON or a Python-style dict.
+        normalized = re.sub(
+            r'([{,]\s*)([A-Za-z_][A-Za-z0-9_]*)\s*:',
+            r'\1"\2":',
+            raw.strip(),
+        )
+        try:
+            data = json.loads(normalized)
+        except json.JSONDecodeError:
+            try:
+                data = ast.literal_eval(normalized)
+            except (ValueError, SyntaxError) as exc:
+                raise ValueError(
+                    "YOUTUBE_TOKEN_JSON is not a valid token object. Store only the JSON object, "
+                    "not the HTTP request/response text."
+                ) from exc
+
+    if not isinstance(data, dict):
+        raise ValueError("YOUTUBE_TOKEN_JSON must contain one object.")
+
+    # OAuth Playground responses commonly use access_token/scope rather than
+    # the field names expected by google-auth's authorized-user loader.
+    if not data.get("token") and data.get("access_token"):
+        data["token"] = data["access_token"]
+    if not data.get("refresh_token") and REFRESH_TOKEN:
+        data["refresh_token"] = REFRESH_TOKEN
+    if not data.get("client_id") and OAUTH_CLIENT_ID:
+        data["client_id"] = OAUTH_CLIENT_ID
+    if not data.get("client_secret") and OAUTH_CLIENT_SECRET:
+        data["client_secret"] = OAUTH_CLIENT_SECRET
+    data.setdefault("token_uri", "https://oauth2.googleapis.com/token")
+    scopes = data.get("scopes", data.get("scope", SCOPES))
+    if isinstance(scopes, str):
+        data["scopes"] = scopes.split()
+    else:
+        data["scopes"] = scopes
+    return data
+
+
 def validate_token_info(token_info):
     if not isinstance(token_info, dict):
-        raise ValueError('YOUTUBE_TOKEN_JSON must contain a JSON object.')
-    required = ('client_id', 'client_secret', 'refresh_token', 'token_uri')
+        raise ValueError("YOUTUBE_TOKEN_JSON must contain a JSON object.")
+    required = ("client_id", "client_secret", "refresh_token", "token_uri")
     missing = [key for key in required if not token_info.get(key)]
     if missing:
-        raise ValueError('YouTube OAuth data is missing required fields: ' + ', '.join(missing))
+        raise ValueError(
+            "YouTube OAuth data is missing required fields: " + ", ".join(missing)
+            + ". The refresh token and OAuth client ID/secret are required for automatic uploads."
+        )
+    scopes = token_info.get("scopes", [])
+    if isinstance(scopes, str):
+        scopes = scopes.split()
+    if "https://www.googleapis.com/auth/youtube.upload" not in scopes:
+        raise ValueError("OAuth token is missing the YouTube upload scope.")
     return token_info
 
 
@@ -68,7 +122,7 @@ def main():
     validate_privacy_settings(PRIVACY, PUBLIC_PUBLISH_ENABLED)
 
     if TOKEN_SECRET:
-        token_info = validate_token_info(json.loads(TOKEN_SECRET))
+        token_info = validate_token_info(parse_token_secret(TOKEN_SECRET))
         credentials = Credentials.from_authorized_user_info(token_info, SCOPES)
     elif REFRESH_TOKEN and OAUTH_CLIENT_ID and OAUTH_CLIENT_SECRET:
         credentials = Credentials(
