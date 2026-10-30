@@ -236,26 +236,32 @@ def main():
     title_file = str(title_path.resolve()).replace(":", "\\:")
     captions_file = "output/captions.srt"
     video_filter = (
-        "scale=1080:1920:force_original_aspect_ratio=decrease,"
-        "pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black,"
+        "[0:v]split=2[bg][fg];"
+        "[bg]scale=1080:1920:force_original_aspect_ratio=increase,"
+        "crop=1080:1920,boxblur=24:12[bgblur];"
+        "[fg]scale=1080:1920:force_original_aspect_ratio=decrease[fgfit];"
+        "[bgblur][fgfit]overlay=(W-w)/2:(H-h)/2,"
         f"drawtext=fontfile={font}:textfile={title_file}:fontcolor=white:fontsize=42:"
-        "borderw=3:bordercolor=black:x=(w-text_w)/2:y=105:box=1:boxcolor=black@0.35:boxborderw=14,"
-        f"subtitles=filename={captions_file}:force_style='FontName=DejaVu Sans,FontSize=17,"
-        "Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,"
-        "Shadow=1,Alignment=2,MarginV=150'"
+        "borderw=3:bordercolor=black:x=(w-text_w)/2:y=90:box=1:boxcolor=black@0.45:boxborderw=16,"
+        f"subtitles=filename={captions_file}:force_style='FontName=DejaVu Sans,FontSize=10,"
+        "Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=1,"
+        "Shadow=0,Alignment=2,MarginV=115'[v]"
     )
     command = [
         "ffmpeg", "-y", "-ss", f"{start:.2f}", "-i", str(source_path),
         "-i", str(voice_path), "-t", f"{render_duration:.2f}",
-        "-vf", video_filter,
     ]
     if has_audio:
-        command += [
-            "-filter_complex", "[0:a]volume=0.12[bg];[1:a]volume=1.0[voice];[bg][voice]amix=inputs=2:duration=longest:dropout_transition=2[aout]",
-            "-map", "0:v:0", "-map", "[aout]",
-        ]
+        audio_filter = (
+            "[0:a]volume=0.12[bg_a];[1:a]volume=1.0[voice];"
+            "[bg_a][voice]amix=inputs=2:duration=longest:dropout_transition=2[aout]"
+        )
     else:
-        command += ["-map", "0:v:0", "-map", "1:a:0"]
+        audio_filter = "[1:a]anull[aout]"
+    command += [
+        "-filter_complex", video_filter + ";" + audio_filter,
+        "-map", "[v]", "-map", "[aout]",
+    ]
     command += [
         "-c:v", "libx264", "-preset", "fast", "-crf", "23",
         "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart",
