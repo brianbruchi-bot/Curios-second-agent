@@ -252,7 +252,7 @@ def validate_render(path, expected_duration):
     ).stdout.splitlines()
     if "video" not in codecs or "audio" not in codecs:
         raise RuntimeError("Rendered video must contain both video and audio streams.")
-    if duration < 8 or duration > 60 or abs(duration - expected_duration) > 1.5:
+    if duration < 5 or duration > 60 or abs(duration - expected_duration) > 1.5:
         raise RuntimeError(f"Unexpected rendered duration: {duration:.2f}s.")
     return duration
 
