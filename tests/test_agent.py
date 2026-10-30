@@ -52,3 +52,29 @@ def test_learning_state_is_valid_json(tmp_path, monkeypatch):
     main.save_learning(state)
     parsed = json.loads((tmp_path / "learning.json").read_text(encoding="utf-8"))
     assert parsed["successful_runs"] == 0
+
+
+def test_short_source_is_skipped_and_next_candidate_is_used(tmp_path, monkeypatch):
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    monkeypatch.setattr(main, "STATE_DIR", tmp_path / ".agent_state")
+    monkeypatch.setattr(main, "STATE_FILE", tmp_path / ".agent_state" / "learning.json")
+    candidates = [
+        {"url": "https://example.test/short.webm", "source_page": "short", "title": "Short"},
+        {"url": "https://example.test/valid.webm", "source_page": "valid", "title": "Valid"},
+    ]
+
+    def fake_find(state):
+        return next((item for item in candidates if item["source_page"] not in state["seen_sources"]), None)
+
+    def fake_download(url, destination):
+        destination.write_bytes(b"video-data")
+
+    monkeypatch.setattr(main, "find_open_video", fake_find)
+    monkeypatch.setattr(main, "download_video", fake_download)
+    monkeypatch.setattr(main, "duration_seconds", lambda path: 4.0 if "short" in path.name else 12.0)
+
+    learning = main.load_learning()
+    video, path, duration = main.download_suitable_video(learning, attempts=2)
+    assert video["source_page"] == "valid"
+    assert duration == 12.0
+    assert path.exists()
