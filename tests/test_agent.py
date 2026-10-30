@@ -109,3 +109,9 @@ def test_http_retry_handles_wikimedia_rate_limit(monkeypatch):
     response = main.open_with_retries(object(), timeout=1, attempts=2)
     assert response.read() == b"ok"
     assert calls["count"] == 2
+
+
+def test_media_filter_rejects_failed_imports_and_tiny_files():
+    assert not main.media_info_is_usable({"url": "https://example.test/a.webm", "size": 485_000, "length": 0.04})
+    assert not main.media_info_is_usable({"url": "https://example.test/a.webm", "size": 2_000_000, "length": 0.04})
+    assert main.media_info_is_usable({"url": "https://example.test/a.webm", "size": 2_000_000, "length": 12})
