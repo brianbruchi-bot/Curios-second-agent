@@ -271,3 +271,21 @@ def test_parse_oauth_playground_python_style_token_object():
     assert token["refresh_token"] == "refresh"
     assert token["scopes"] == ["https://www.googleapis.com/auth/youtube.upload"]
     assert upload_youtube.validate_token_info(token) is token
+
+
+def test_parse_oauth_token_with_mobile_wrapped_value_and_nbsp():
+    import upload_youtube
+
+    raw = (
+        '{\n'
+        '  "access_token": "access-part-one\n'
+        '    access-part-two",\u00a0\n'
+        '  "refresh_token": "refresh",\n'
+        '  "client_id": "id",\n'
+        '  "client_secret": "secret",\n'
+        '  "scope": "https://www.googleapis.com/auth/youtube.upload"\n'
+        '}'
+    )
+    token = upload_youtube.parse_token_secret(raw)
+    assert token["token"] == "access-part-oneaccess-part-two"
+    assert upload_youtube.validate_token_info(token) is token
