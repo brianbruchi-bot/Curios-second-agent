@@ -176,9 +176,16 @@ def find_open_video(learning):
             description = clean_html(ext.get("ImageDescription", {}).get("value", ""))
             # Reject title-only metadata: it produced generic narration in earlier tests.
             title_lower = title.lower()
-            if len(description) < 180 or description.lower().startswith(title_lower):
+            description_lower = description.lower()
+            if len(description) < 180 or description_lower.startswith(title_lower):
                 continue
             if any(term in title_lower for term in ("video by", "footage of", "youtube", "promotional")):
+                continue
+            # Exclude risky how-to footage and tool instructions that can be misleading out of context.
+            if any(term in title_lower or term in description_lower for term in (
+                "how to", "tutorial", "lawn mower", "chainsaw", "wood chopping",
+                "cut through", "blade of", "sawing", "knife", "power tool",
+            )):
                 continue
             if not is_english_metadata(title, description):
                 continue
@@ -424,7 +431,7 @@ def main():
         f"{title}\n\n{narration}\n\n"
         f"Footage: {video['source_page']}\nCreator: {video['artist']}\n"
         f"License: {video['license']} {video['license_url']}\n"
-        "#shorts #curiosity #nature"
+        "#shorts #curiosity"
     )
     (OUTPUT_DIR / "description.txt").write_text(description, encoding="utf-8")
     source_path.unlink(missing_ok=True)
