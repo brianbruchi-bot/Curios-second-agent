@@ -88,7 +88,7 @@ def test_make_story_joins_lowercase_sentence_fragments():
         "title": "File:Wildlife center.webm",
         "description": (
             "A broadcast from the Wildlife Center of Texas. "
-            "a wildlife rehabilitation center, reaches young patients at the hospital during difficult treatment and recovery."
+            "a wildlife rehabilitation center, reaches young patients at the hospital during difficult treatment and recovery. The program offers comfort and support to families."
         ),
     }
     _, narration = main.make_story(video)
