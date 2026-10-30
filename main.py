@@ -14,6 +14,44 @@ import edge_tts
 
 OUTPUT_DIR = Path("output")
 OUTPUT_DIR.mkdir(exist_ok=True)
+STATE_DIR = Path(".agent_state")
+STATE_FILE = STATE_DIR / "learning.json"
+
+
+def load_learning():
+    STATE_DIR.mkdir(exist_ok=True)
+    try:
+        state = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+        if not isinstance(state, dict):
+            raise ValueError("Learning state must be an object")
+    except (OSError, ValueError, json.JSONDecodeError):
+        state = {"seen_sources": [], "successful_runs": 0, "source_scores": {}}
+    state.setdefault("seen_sources", [])
+    state.setdefault("successful_runs", 0)
+    state.setdefault("source_scores", {})
+    return state
+
+
+def save_learning(state):
+    STATE_DIR.mkdir(exist_ok=True)
+    STATE_FILE.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def remember_success(state, video, narration, duration):
+    source = video["source_page"]
+    seen = [item for item in state.get("seen_sources", []) if item != source]
+    seen.append(source)
+    state["seen_sources"] = seen[-100:]
+    state["successful_runs"] = int(state.get("successful_runs", 0)) + 1
+    scores = state.setdefault("source_scores", {})
+    scores[source] = {
+        "title": video["title"],
+        "successful_renders": int(scores.get(source, {}).get("successful_renders", 0)) + 1,
+        "last_duration_seconds": round(duration, 2),
+        "narration_words": len(narration.split()),
+    }
+    state["last_success_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    save_learning(state)
 API = "https://commons.wikimedia.org/w/api.php"
 USER_AGENT = "CuriosSecondAgent/1.1 (automated short creation)"
 VOICE = "en-US-GuyNeural"
@@ -49,7 +87,7 @@ def is_english_metadata(title, description):
     return len(words & english_markers) >= 2 and not (words & foreign_markers)
 
 
-def find_open_video():
+def find_open_video(learning):
     searches = [
         "filemime:video/webm wildlife",
         "filemime:video/mp4 ocean animals",
@@ -110,6 +148,8 @@ def find_open_video():
             if len(meaningful_words) < 32 or len(re.findall(r"[.!?]", description)) < 2:
                 continue
             source_page = "https://commons.wikimedia.org/wiki/" + urllib.parse.quote(title.replace(" ", "_"))
+            if source_page in learning.get("seen_sources", []):
+                continue
             return {
                 "title": title,
                 "url": url,
@@ -199,7 +239,9 @@ async def synthesize_speech(text, destination):
 
 def main():
     print("CURIOS SECOND AGENT — finding openly licensed footage")
-    video = find_open_video()
+    learning = load_learning()
+    print("Learning memory:", learning.get("successful_runs", 0), "successful previous renders")
+    video = find_open_video(learning)
     if not video:
         raise RuntimeError("No suitable openly licensed video found.")
 
@@ -290,6 +332,8 @@ def main():
     (OUTPUT_DIR / "description.txt").write_text(description, encoding="utf-8")
     source_path.unlink(missing_ok=True)
     voice_path.unlink(missing_ok=True)
+    remember_success(learning, video, narration, render_duration)
+    print("LEARNING: remembered source and render quality; total successful renders:", learning["successful_runs"])
     print("SUCCESS: Created narrated, captioned output/curios_short.mp4")
     print("Metadata saved in output/attribution.json and output/description.txt")
 
