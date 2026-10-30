@@ -1,5 +1,9 @@
 name: Run YouTube Clipping Agent
 
+concurrency:
+  group: curious-second-agent
+  cancel-in-progress: true
+
 on:
   workflow_dispatch:
   push:
