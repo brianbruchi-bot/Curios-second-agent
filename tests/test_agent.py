@@ -250,3 +250,24 @@ def test_youtube_oauth_validation_accepts_required_fields():
     import upload_youtube
     token = {'client_id': 'id', 'client_secret': 'secret', 'refresh_token': 'refresh', 'token_uri': 'https://oauth2.googleapis.com/token'}
     assert upload_youtube.validate_token_info(token) is token
+
+
+def test_parse_oauth_playground_python_style_token_object():
+    import upload_youtube
+    raw = """Token response:
+    ```javascript
+    {
+      access_token: 'access',
+      refresh_token: 'refresh',
+      token_type: 'Bearer',
+      scope: 'https://www.googleapis.com/auth/youtube.upload',
+      client_id: 'id',
+      client_secret: 'secret'
+    }
+    ```
+    """
+    token = upload_youtube.parse_token_secret(raw)
+    assert token["token"] == "access"
+    assert token["refresh_token"] == "refresh"
+    assert token["scopes"] == ["https://www.googleapis.com/auth/youtube.upload"]
+    assert upload_youtube.validate_token_info(token) is token
