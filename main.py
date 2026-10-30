@@ -185,6 +185,25 @@ def duration_seconds(path):
     return float(probe_value(path, "format=duration"))
 
 
+def validate_render(path, expected_duration):
+    if not path.exists() or path.stat().st_size < 100_000:
+        raise RuntimeError("Rendered video is missing or unexpectedly small.")
+    duration = duration_seconds(path)
+    dimensions = probe_value(path, "stream=width,height").splitlines()
+    if len(dimensions) < 2 or dimensions[0] != "1080" or dimensions[1] != "1920":
+        raise RuntimeError(f"Rendered video must be 1080x1920; got {dimensions}.")
+    codecs = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "stream=codec_type",
+         "-of", "csv=p=0", str(path)],
+        capture_output=True, text=True, check=True,
+    ).stdout.splitlines()
+    if "video" not in codecs or "audio" not in codecs:
+        raise RuntimeError("Rendered video must contain both video and audio streams.")
+    if duration < 8 or duration > 60 or abs(duration - expected_duration) > 1.5:
+        raise RuntimeError(f"Unexpected rendered duration: {duration:.2f}s.")
+    return duration
+
+
 def make_story(video):
     raw_title = re.sub(r"^File:", "", video["title"]).rsplit(".", 1)[0]
     raw_title = re.sub(r"\([^)]{0,80}\)", "", raw_title)
@@ -310,6 +329,8 @@ def main():
         "-pix_fmt", "yuv420p", str(output_path),
     ]
     subprocess.run(command, check=True)
+    final_duration = validate_render(output_path, render_duration)
+    print(f"QUALITY CHECK PASSED: 1080x1920, audio+video, {final_duration:.2f}s")
 
     attribution = {
         "source_title": video["title"], "source_page": video["source_page"],
