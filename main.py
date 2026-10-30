@@ -387,7 +387,7 @@ def main():
     ).stdout.strip() == "audio"
     font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     title_file = str(title_path.resolve()).replace(":", "\\:")
-    captions_file = str(captions_path.resolve()).replace("\\\\", "/").replace(":", "\\\\:")
+    captions_file = str(captions_path.resolve()).replace("\\", "/").replace(":", "\\:")
     video_filter = (
         "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,"
         "crop=1080:1920,"
