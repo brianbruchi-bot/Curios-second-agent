@@ -125,6 +125,17 @@ def is_appropriate_source(title, description):
     return not any(term in title_lower or term in description_lower for term in risky_terms)
 
 
+def is_reusable_license(license_name, license_url=''):
+    license_lower = (license_name + ' ' + license_url).lower()
+    if any(term in license_lower for term in ('noncommercial', 'non-commercial', 'no derivatives', 'cc by-nd', 'cc-by-nd')):
+        return False
+    return any(term in license_lower for term in (
+        'public domain', 'cc0', 'creative commons attribution 4.0',
+        'creative commons attribution 3.0', 'cc by 4.0', 'cc-by-4.0',
+        'cc by 3.0', 'cc-by-3.0',
+    ))
+
+
 def media_info_is_usable(info):
     file_size = int(info.get("size", 0) or 0)
     if file_size < 600_000 or file_size > 80 * 1024 * 1024:
@@ -173,23 +184,8 @@ def find_open_video(learning):
             ext = info.get("extmetadata", {})
             license_name = clean_html(ext.get("LicenseShortName", {}).get("value", "See source page"))
             license_url = ext.get("LicenseUrl", {}).get("value", "")
-            license_lower = (license_name + " " + license_url).lower()
-            if any(term in license_lower for term in (
-                "noncommercial", "non-commercial", "no derivatives", "cc by-nd", "cc-by-nd"
-            )):
-                continue
-            # Only use licenses that are straightforward to reuse and attribute.
-            license_ok = (
-                "public domain" in license_lower
-                or "cc0" in license_lower
-                or "creative commons attribution 4.0" in license_lower
-                or "creative commons attribution 3.0" in license_lower
-                or "cc by 4.0" in license_lower
-                or "cc-by-4.0" in license_lower
-                or "cc by 3.0" in license_lower
-                or "cc-by-3.0" in license_lower
-            )
-            if not license_ok:
+            # Restrict source media to licenses that allow reuse and attribution.
+            if not is_reusable_license(license_name, license_url):
                 continue
             title = page.get("title", "Wikimedia Commons video")
             description = clean_html(ext.get("ImageDescription", {}).get("value", ""))
