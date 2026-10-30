@@ -32,6 +32,13 @@ jobs:
             python -m pip install --upgrade pip
             pip install -r requirements.txt
           fi
+      - name: Restore agent learning memory
+        uses: actions/cache@v4
+        with:
+          path: .agent_state/
+          key: curios-learning-${{ github.run_id }}
+          restore-keys: |
+            curios-learning-
       - name: Run agent
         run: python main.py
       - name: Save generated Short and attribution
