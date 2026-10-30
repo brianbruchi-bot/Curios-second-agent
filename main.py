@@ -51,9 +51,12 @@ def is_english_metadata(title, description):
 
 def find_open_video():
     searches = [
-        "filemime:video/webm nature",
-        "filemime:video/mp4 wildlife",
-        "filemime:video/webm science",
+        "filemime:video/webm wildlife",
+        "filemime:video/mp4 ocean animals",
+        "filemime:video/webm forest animals",
+        "filemime:video/mp4 space astronomy",
+        "filemime:video/webm nature documentary",
+        "filemime:video/mp4 underwater",
     ]
     random.shuffle(searches)
     for query in searches:
@@ -95,9 +98,16 @@ def find_open_video():
             title = page.get("title", "Wikimedia Commons video")
             description = clean_html(ext.get("ImageDescription", {}).get("value", ""))
             # Reject title-only metadata: it produced generic narration in earlier tests.
-            if len(description) < 100 or description.lower() in title.lower():
+            title_lower = title.lower()
+            if len(description) < 180 or description.lower().startswith(title_lower):
+                continue
+            if any(term in title_lower for term in ("video by", "footage of", "youtube", "promotional")):
                 continue
             if not is_english_metadata(title, description):
+                continue
+            # Avoid metadata-only catalog entries and descriptions that are too thin to narrate.
+            meaningful_words = re.findall(r"[A-Za-z]{3,}", description)
+            if len(meaningful_words) < 32 or len(re.findall(r"[.!?]", description)) < 2:
                 continue
             source_page = "https://commons.wikimedia.org/wiki/" + urllib.parse.quote(title.replace(" ", "_"))
             return {
@@ -141,17 +151,19 @@ def make_story(video):
     raw_title = raw_title.replace("_", " ").replace("-", " ").strip()
     title = " ".join(raw_title.split())
     title = re.sub(r"\s+", " ", title).strip(" .")
+    title = re.sub(r"\b(video|footage|clip)\b", "", title, flags=re.I).strip()
     description = re.sub(r"\s+", " ", video.get("description", "")).strip()
     description = re.sub(r"https?://\S+", "", description).strip(" -.;")
     # The narration is based on the creator's actual description, not invented facts.
     sentences = re.split(r"(?<=[.!?])\s+", description)
+    sentences = [sentence for sentence in sentences if len(sentence.split()) >= 7]
     body = " ".join(sentences[:3]).strip()
     body_words = body.split()
-    if len(body_words) > 42:
-        body = " ".join(body_words[:42]).rstrip(" ,;:")
-    if len(body_words) < 12:
+    if len(body_words) > 48:
+        body = " ".join(body_words[:48]).rstrip(" ,;:")
+    if len(body_words) < 28:
         raise RuntimeError("Source description is too short for a meaningful narration.")
-    narration = f"Here is something worth a closer look. {body}"
+    narration = f"Did you know? {body}"
     if not narration.endswith((".", "!", "?")):
         narration += "."
     if len(title) > 52:
@@ -224,8 +236,8 @@ def main():
     title_file = str(title_path.resolve()).replace(":", "\\:")
     captions_file = "output/captions.srt"
     video_filter = (
-        "scale=1080:1920:force_original_aspect_ratio=increase,"
-        "crop=1080:1920,"
+        "scale=1080:1920:force_original_aspect_ratio=decrease,"
+        "pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black,"
         f"drawtext=fontfile={font}:textfile={title_file}:fontcolor=white:fontsize=42:"
         "borderw=3:bordercolor=black:x=(w-text_w)/2:y=105:box=1:boxcolor=black@0.35:boxborderw=14,"
         f"subtitles=filename={captions_file}:force_style='FontName=DejaVu Sans,FontSize=17,"
@@ -255,7 +267,7 @@ def main():
         "source_title": video["title"], "source_page": video["source_page"],
         "creator": video["artist"], "license": video["license"],
         "license_url": video["license_url"], "description": video["description"],
-        "clip_start_seconds": round(start, 2), "clip_duration_seconds": round(clip_duration, 2),
+        "clip_start_seconds": round(start, 2), "clip_duration_seconds": round(render_duration, 2),
         "video_title": title, "narration": narration, "voice": VOICE,
         "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "note": "Source license was filtered to public domain, CC0, or CC BY 3.0/4.0. Attribution is included in description.txt.",
