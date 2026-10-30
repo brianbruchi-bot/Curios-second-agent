@@ -35,7 +35,7 @@ def _join_wrapped_string_lines(value):
             if escaped:
                 output.append(char)
                 escaped = False
-            elif char == "\\\\":
+            elif char == "\\":
                 output.append(char)
                 escaped = True
             elif char == quote:
@@ -50,7 +50,7 @@ def _join_wrapped_string_lines(value):
                 output.append(char)
         else:
             output.append(char)
-            if char in ("\\\"", "'"):
+            if char in ('"', "'"):
                 quote = char
         index += 1
     return "".join(output)
@@ -65,7 +65,8 @@ def parse_token_secret(raw):
     candidate = (raw or "").replace("\ufeff", "").replace("\u00a0", " ")
     candidate = candidate.replace("\u200b", "").replace("\u202f", " ").replace("\u200e", "").replace("\u200f", "")
     candidate = candidate.replace("“", '"').replace("”", '"').replace("‘", "'").replace("’", "'").strip()
-    candidate = _join_wrapped_string_lines(candidate)\n    first_brace, last_brace = candidate.find("{"), candidate.rfind("}")
+    candidate = _join_wrapped_string_lines(candidate)
+    first_brace, last_brace = candidate.find("{"), candidate.rfind("}")
     if first_brace >= 0 and last_brace > first_brace:
         candidate = candidate[first_brace:last_brace + 1]
 
