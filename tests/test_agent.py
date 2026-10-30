@@ -187,6 +187,36 @@ def test_reusable_license_allowlist_and_restrictions():
     assert not main.is_reusable_license('All rights reserved')
 
 
+def test_upload_package_requires_video_and_matching_attribution(tmp_path, monkeypatch):
+    import upload_youtube
+
+    video = tmp_path / "short.mp4"
+    video.write_bytes(b"x" * 150_000)
+    title = tmp_path / "title.txt"
+    title.write_text("A useful title", encoding="utf-8")
+    description = tmp_path / "description.txt"
+    source = "https://commons.wikimedia.org/wiki/File:Example.webm"
+    description.write_text(
+        f"A short narration.\\n\\nFootage: {source}\\nCreator: Example\\nLicense: Public domain",
+        encoding="utf-8",
+    )
+    attribution = tmp_path / "attribution.json"
+    attribution.write_text(json.dumps({
+        "source_page": source, "license": "Public domain",
+        "creator": "Example", "video_title": "A useful title",
+    }), encoding="utf-8")
+
+    monkeypatch.setattr(upload_youtube, "VIDEO", video)
+    monkeypatch.setattr(upload_youtube, "TITLE_FILE", title)
+    monkeypatch.setattr(upload_youtube, "DESCRIPTION_FILE", description)
+    monkeypatch.setattr(upload_youtube, "ATTRIBUTION_FILE", attribution)
+    assert "Footage:" in upload_youtube.validate_upload_package()
+
+    description.write_text("Footage: different source\\nLicense: Public domain", encoding="utf-8")
+    with pytest.raises(ValueError, match="does not contain the attributed source page"):
+        upload_youtube.validate_upload_package()
+
+
 def test_youtube_oauth_validation_rejects_incomplete_credentials():
     import upload_youtube
     import pytest
