@@ -342,6 +342,15 @@ async def synthesize_speech(text, destination):
     await communicate.save(str(destination))
 
 
+def is_suitable_source_resolution(width, height):
+    """Reject low-resolution footage that would look visibly soft in a 1080p Short."""
+    try:
+        width, height = int(width), int(height)
+    except (TypeError, ValueError):
+        return False
+    return min(width, height) >= 720 and width * height >= 900_000
+
+
 def download_suitable_video(learning, attempts=8):
     for attempt in range(1, attempts + 1):
         video = find_open_video(learning)
@@ -358,12 +367,17 @@ def download_suitable_video(learning, attempts=8):
             else:
                 duration = duration_seconds(source_path)
             if duration >= 8:
-                try:
-                    make_story(video)
-                except RuntimeError as exc:
-                    print("Skipping source with unusable narration metadata:", exc)
+                dimensions = probe_value(source_path, "stream=width,height").splitlines()
+                if len(dimensions) < 2 or not is_suitable_source_resolution(dimensions[0], dimensions[1]):
+                    print("Skipping low-resolution source footage:", video["title"], dimensions)
+                    duration = 0.0
                 else:
-                    return video, source_path, duration
+                    try:
+                        make_story(video)
+                    except RuntimeError as exc:
+                        print("Skipping source with unusable narration metadata:", exc)
+                    else:
+                        return video, source_path, duration
             else:
                 print(f"Skipping short source ({duration:.2f}s):", video["title"])
         except (OSError, RuntimeError, subprocess.CalledProcessError) as exc:
