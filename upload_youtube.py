@@ -41,10 +41,10 @@ def _join_wrapped_string_lines(value):
             elif char == quote:
                 output.append(char)
                 quote = None
-            elif char in "\\r\\n":
+            elif char in "\r\n":
                 # OAuth token fields never need literal line breaks. Mobile
                 # copy/paste sometimes inserts them into long quoted values.
-                while index + 1 < len(value) and value[index + 1] in "\\r\\n\\t ":
+                while index + 1 < len(value) and value[index + 1] in "\r\n\t ":
                     index += 1
             else:
                 output.append(char)
