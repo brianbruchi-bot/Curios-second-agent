@@ -67,6 +67,15 @@ def test_learning_state_is_valid_json(tmp_path, monkeypatch):
     assert parsed["successful_runs"] == 0
 
 
+def test_source_resolution_rejects_soft_upscaled_footage():
+    assert main.is_suitable_source_resolution(1920, 1080)
+    assert main.is_suitable_source_resolution(720, 1280)
+    assert main.is_suitable_source_resolution("1280", "720")
+    assert not main.is_suitable_source_resolution(640, 360)
+    assert not main.is_suitable_source_resolution(480, 854)
+    assert not main.is_suitable_source_resolution("unknown", 720)
+
+
 def test_short_source_is_skipped_and_next_candidate_is_used(tmp_path, monkeypatch):
     monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
     monkeypatch.setattr(main, "STATE_DIR", tmp_path / ".agent_state")
