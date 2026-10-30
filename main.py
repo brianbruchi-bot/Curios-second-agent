@@ -108,7 +108,7 @@ def is_english_metadata(title, description):
 
 def media_info_is_usable(info):
     file_size = int(info.get("size", 0) or 0)
-    if file_size < 1_000_000 or file_size > 80 * 1024 * 1024:
+    if file_size < 600_000 or file_size > 80 * 1024 * 1024:
         return False
     duration_hint = info.get("length") or info.get("duration")
     try:
@@ -127,6 +127,14 @@ def find_open_video(learning):
         "filemime:video/mp4 space astronomy",
         "filemime:video/webm nature documentary",
         "filemime:video/mp4 underwater",
+        "filemime:video/webm birds",
+        "filemime:video/mp4 animals",
+        "filemime:video/webm science experiment",
+        "filemime:video/mp4 volcano geyser",
+        "filemime:video/webm landscape river",
+        "filemime:video/mp4 insects",
+        "filemime:video/webm marine life",
+        "filemime:video/mp4 technology",
     ]
     random.shuffle(searches)
     counts = learning.get("query_counts", {})
@@ -134,7 +142,7 @@ def find_open_video(learning):
     for query in searches:
         data = api_get({
             "action": "query", "format": "json", "generator": "search",
-            "gsrsearch": query, "gsrnamespace": 6, "gsrlimit": 30,
+            "gsrsearch": query, "gsrnamespace": 6, "gsrlimit": 50,
             "prop": "imageinfo", "iiprop": "url|extmetadata|size|length",
         })
         pages = list(data.get("query", {}).get("pages", {}).values())
