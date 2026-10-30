@@ -5,6 +5,7 @@ import random
 import re
 import subprocess
 import time
+import textwrap
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -78,8 +79,24 @@ def find_open_video():
                 "noncommercial", "non-commercial", "no derivatives", "cc by-nd", "cc-by-nd"
             )):
                 continue
+            # Only use licenses that are straightforward to reuse and attribute.
+            license_ok = (
+                "public domain" in license_lower
+                or "cc0" in license_lower
+                or "creative commons attribution 4.0" in license_lower
+                or "creative commons attribution 3.0" in license_lower
+                or "cc by 4.0" in license_lower
+                or "cc-by-4.0" in license_lower
+                or "cc by 3.0" in license_lower
+                or "cc-by-3.0" in license_lower
+            )
+            if not license_ok:
+                continue
             title = page.get("title", "Wikimedia Commons video")
             description = clean_html(ext.get("ImageDescription", {}).get("value", ""))
+            # Reject title-only metadata: it produced generic narration in earlier tests.
+            if len(description) < 100 or description.lower() in title.lower():
+                continue
             if not is_english_metadata(title, description):
                 continue
             source_page = "https://commons.wikimedia.org/wiki/" + urllib.parse.quote(title.replace(" ", "_"))
@@ -120,30 +137,31 @@ def duration_seconds(path):
 
 def make_story(video):
     raw_title = re.sub(r"^File:", "", video["title"]).rsplit(".", 1)[0]
-    raw_title = raw_title.replace("_", " ").strip()
+    raw_title = re.sub(r"\([^)]{0,80}\)", "", raw_title)
+    raw_title = raw_title.replace("_", " ").replace("-", " ").strip()
     title = " ".join(raw_title.split())
+    title = re.sub(r"\s+", " ", title).strip(" .")
     description = re.sub(r"\s+", " ", video.get("description", "")).strip()
     description = re.sub(r"https?://\S+", "", description).strip(" -.;")
-    if not description or description.lower() == title.lower():
-        narration = (
-            f"Here is a closer look at {title}. "
-            "Watch the details in the footage, and explore the original source "
-            "and creator credited below."
-        )
-    else:
-        summary = " ".join(description.split()[:24]).rstrip(" ,.;:")
-        narration = (
-            f"Here is a closer look at {title}. "
-            f"The source explains: {summary}. "
-            "The original creator and license are listed below."
-        )
-    short_title = title if len(title) <= 38 else title[:35].rsplit(" ", 1)[0] + "..."
-    return short_title, narration
+    # The narration is based on the creator's actual description, not invented facts.
+    sentences = re.split(r"(?<=[.!?])\s+", description)
+    body = " ".join(sentences[:3]).strip()
+    body_words = body.split()
+    if len(body_words) > 42:
+        body = " ".join(body_words[:42]).rstrip(" ,;:")
+    if len(body_words) < 12:
+        raise RuntimeError("Source description is too short for a meaningful narration.")
+    narration = f"Here is something worth a closer look. {body}"
+    if not narration.endswith((".", "!", "?")):
+        narration += "."
+    if len(title) > 52:
+        title = " ".join(title.split()[:7])
+    return title, narration
 
 
 def make_srt(text, duration, destination):
     words = text.split()
-    groups = [" ".join(words[i:i + 7]) for i in range(0, len(words), 7)]
+    groups = [" ".join(words[i:i + 5]) for i in range(0, len(words), 5)]
     total_words = sum(len(group.split()) for group in groups)
     cursor = 0.0
     entries = []
@@ -189,7 +207,7 @@ def main():
     start = random.uniform(0, max(0, total - clip_duration)) if total > clip_duration else 0
 
     title, narration = make_story(video)
-    title_path.write_text(title, encoding="utf-8")
+    title_path.write_text("\n".join(textwrap.wrap(title, width=25)[:2]), encoding="utf-8")
     asyncio.run(synthesize_speech(narration, voice_path))
     voice_duration = duration_seconds(voice_path)
     render_duration = min(clip_duration, voice_duration)
@@ -240,7 +258,7 @@ def main():
         "clip_start_seconds": round(start, 2), "clip_duration_seconds": round(clip_duration, 2),
         "video_title": title, "narration": narration, "voice": VOICE,
         "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "note": "Draft created automatically. Verify source license and attribution before publishing.",
+        "note": "Source license was filtered to public domain, CC0, or CC BY 3.0/4.0. Attribution is included in description.txt.",
     }
     (OUTPUT_DIR / "attribution.json").write_text(
         json.dumps(attribution, ensure_ascii=False, indent=2), encoding="utf-8"
