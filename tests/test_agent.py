@@ -39,10 +39,11 @@ def test_learning_memory_avoids_duplicate_sources(tmp_path, monkeypatch):
     monkeypatch.setattr(main, "STATE_DIR", tmp_path)
     monkeypatch.setattr(main, "STATE_FILE", tmp_path / "learning.json")
     state = main.load_learning()
-    video = {"source_page": "https://example.test/source", "title": "Test source"}
+    video = {"source_page": "https://example.test/source", "title": "Test source", "search_query": "wildlife"}
     main.remember_success(state, video, "A short narration.", 12.5)
     loaded = main.load_learning()
     assert loaded["successful_runs"] == 1
+    assert loaded["query_counts"]["wildlife"] == 1
     assert loaded["seen_sources"] == ["https://example.test/source"]
     assert loaded["source_scores"]["https://example.test/source"]["last_duration_seconds"] == 12.5
 
