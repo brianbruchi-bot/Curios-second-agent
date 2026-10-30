@@ -1,2 +1,4 @@
 yt-dlp
 edge-tts
+google-api-python-client
+google-auth
