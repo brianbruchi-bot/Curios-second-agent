@@ -38,8 +38,10 @@ YouTube upload is deliberately disabled until OAuth is configured. The YouTube D
 Required repository secrets:
 - `YOUTUBE_TOKEN_JSON` — OAuth authorized-user JSON with a refresh token.
 - `YOUTUBE_UPLOAD_ENABLED` — set to the exact text `true` only after testing.
+- `YOUTUBE_PRIVACY_STATUS` — leave unset or set to `private` for the first upload.
+- `YOUTUBE_PUBLIC_PUBLISH_ENABLED` — must be the exact text `true` as a separate safeguard before a public upload is allowed.
 
-The workflow currently uploads privately. Change to public only after the owner explicitly chooses that setting.
+The workflow defaults to private. Public uploads are additionally blocked unless `YOUTUBE_PUBLIC_PUBLISH_ENABLED=true` is configured separately, preventing an accidental public release.
 
 ## Learning
 
