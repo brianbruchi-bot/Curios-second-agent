@@ -33,7 +33,7 @@ def find_open_video():
         for page in pages:
             info = (page.get("imageinfo") or [{}])[0]
             url = info.get("url", "")
-            if not url or info.get("size", 0) > 80 * 1024 * 1024 or info.get("length", 0) < 5:
+            if not url or info.get("size", 0) > 80 * 1024 * 1024 or (info.get("length") and info.get("length") < 5):
                 continue
             ext = info.get("extmetadata", {})
             license_name = ext.get("LicenseShortName", {}).get("value", "See source page")
