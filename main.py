@@ -141,7 +141,6 @@ def find_open_video(learning):
         random.shuffle(pages)
         for page in pages:
             info = (page.get("imageinfo") or [{}])[0]
-            url = info.get("url", "")
             if not media_info_is_usable(info):
                 continue
             ext = info.get("extmetadata", {})
@@ -185,7 +184,7 @@ def find_open_video(learning):
             return {
                 "title": title,
                 "search_query": query,
-                "url": url,
+                "url": info["url"],
                 "source_page": source_page,
                 "license": license_name,
                 "license_url": license_url,
