@@ -128,3 +128,16 @@ def test_make_story_removes_redundant_brand_and_year_from_title():
     video["title"] = "File:mypubliclandsroadtrip 2016 Wildlife Watching, Cosumnes River Preserve.webm"
     title, _ = main.make_story(video)
     assert title == "Wildlife Watching, Cosumnes River Preserve"
+
+
+def test_listen_hook_requires_a_standalone_sound_word():
+    video = {
+        "title": "File:Instrument processing.webm",
+        "description": (
+            "The instrument is undergoing final flight preparation at the Kennedy Space Center. "
+            "Protective covering is added before the equipment moves to the next processing facility. "
+            "The team checks each part carefully before transport."
+        ),
+    }
+    _, narration = main.make_story(video)
+    assert narration.startswith("Take a closer look:")
