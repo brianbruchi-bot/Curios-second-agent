@@ -59,8 +59,8 @@ def test_short_source_is_skipped_and_next_candidate_is_used(tmp_path, monkeypatc
     monkeypatch.setattr(main, "STATE_DIR", tmp_path / ".agent_state")
     monkeypatch.setattr(main, "STATE_FILE", tmp_path / ".agent_state" / "learning.json")
     candidates = [
-        {"url": "https://example.test/short.webm", "source_page": "short", "title": "Short"},
-        {"url": "https://example.test/valid.mp4", "source_page": "valid", "title": "Valid"},
+        {"url": "https://example.test/short.webm", "source_page": "short", "title": "File:Short.webm", "description": sample_video()["description"]},
+        {"url": "https://example.test/valid.mp4", "source_page": "valid", "title": "File:Valid.webm", "description": sample_video()["description"]},
     ]
 
     def fake_find(state):
