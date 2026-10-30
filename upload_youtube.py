@@ -25,14 +25,24 @@ SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
 def parse_token_secret(raw):
     """Accept JSON and common copied JavaScript/Python object formatting."""
+    # OAuth Playground and GitHub copy/paste can wrap the object in code fences
+    # or explanatory HTTP text. Extract the object before parsing.
+    candidate = raw.strip()
+    if candidate.startswith("```"):
+        candidate = re.sub(r"^\\`\\`\\`[A-Za-z0-9_-]*\\s*", "", candidate)
+        candidate = re.sub(r"\\s*\\`\\`\\`$", "", candidate)
+    first_brace, last_brace = candidate.find("{"), candidate.rfind("}")
+    if first_brace >= 0 and last_brace > first_brace:
+        candidate = candidate[first_brace:last_brace + 1]
+
     try:
-        data = json.loads(raw)
+        data = json.loads(candidate)
     except json.JSONDecodeError:
         # Quote unquoted object keys, then accept either JSON or a Python-style dict.
         normalized = re.sub(
-            r'([{,]\s*)([A-Za-z_][A-Za-z0-9_]*)\s*:',
-            r'\1"\2":',
-            raw.strip(),
+            r'([{,]\\s*)([A-Za-z_][A-Za-z0-9_]*)\\s*:',
+            r'\\1"\\2":',
+            candidate,
         )
         try:
             data = json.loads(normalized)
