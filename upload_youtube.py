@@ -27,7 +27,11 @@ def parse_token_secret(raw):
     """Accept JSON and common copied JavaScript/Python object formatting."""
     # OAuth Playground and GitHub copy/paste can wrap the object in code fences
     # or explanatory HTTP text. Extract the object before parsing.
-    candidate = raw.strip()
+    # Normalize characters often introduced by mobile copy/paste (NBSP, BOM,
+    # zero-width spaces and smart quotes) before extracting/parsing the token.
+    candidate = (raw or "").replace("\\ufeff", "").replace("\\u00a0", " ")
+    candidate = candidate.replace("\\u200b", "").replace("\\u202f", " ")
+    candidate = candidate.replace("“", '"').replace("”", '"').replace("‘", "'").replace("’", "'").strip()
     first_brace, last_brace = candidate.find("{"), candidate.rfind("}")
     if first_brace >= 0 and last_brace > first_brace:
         candidate = candidate[first_brace:last_brace + 1]
