@@ -311,6 +311,11 @@ def make_story(video):
     return title, narration
 
 
+def format_title_overlay(title):
+    """Fit the on-screen headline into two readable lines without cutting mid-word."""
+    return "\n".join(textwrap.wrap(title, width=25, max_lines=2, placeholder="…"))
+
+
 def make_srt(text, duration, destination):
     words = text.split()
     groups = [" ".join(words[i:i + 4]) for i in range(0, len(words), 4)]
@@ -386,7 +391,7 @@ def main():
     start = random.uniform(0, max(0, total - clip_duration)) if total > clip_duration else 0
 
     title, narration = make_story(video)
-    title_path.write_text("\n".join(textwrap.wrap(title, width=25)[:2]), encoding="utf-8")
+    title_path.write_text(format_title_overlay(title), encoding="utf-8")
     asyncio.run(synthesize_speech(narration, voice_path))
     voice_duration = duration_seconds(voice_path)
     render_duration = min(clip_duration, voice_duration)
