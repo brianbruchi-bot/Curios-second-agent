@@ -216,13 +216,18 @@ def make_story(video):
     # The narration is based on the creator's actual description, not invented facts.
     sentences = re.split(r"(?<=[.!?])\s+", description)
     sentences = [sentence for sentence in sentences if len(sentence.split()) >= 7]
-    body = " ".join(sentences[:3]).strip()
-    body_words = body.split()
-    if len(body_words) > 48:
-        body = " ".join(body_words[:48]).rstrip(" ,;:")
-    if len(body_words) < 28:
-        raise RuntimeError("Source description is too short for a meaningful narration.")
-    narration = f"Did you know? {body}"
+    selected_sentences = []
+    for sentence in sentences:
+        candidate = " ".join(selected_sentences + [sentence])
+        if len(candidate.split()) > 46:
+            break
+        selected_sentences.append(sentence)
+    body = " ".join(selected_sentences).strip()
+    if len(body.split()) < 20:
+        raise RuntimeError("Source description is too short for a complete narration.")
+    # Use a hook that stays faithful to the creator's description.
+    hook = "Listen closely:" if re.search(r"sound|sing|call|birdsong|song", body, re.I) else "Take a closer look:"
+    narration = f"{hook} {body}"
     if not narration.endswith((".", "!", "?")):
         narration += "."
     if len(title) > 52:
@@ -232,7 +237,7 @@ def make_story(video):
 
 def make_srt(text, duration, destination):
     words = text.split()
-    groups = [" ".join(words[i:i + 5]) for i in range(0, len(words), 5)]
+    groups = [" ".join(words[i:i + 4]) for i in range(0, len(words), 4)]
     total_words = sum(len(group.split()) for group in groups)
     cursor = 0.0
     entries = []
@@ -297,14 +302,11 @@ def main():
     title_file = str(title_path.resolve()).replace(":", "\\:")
     captions_file = "output/captions.srt"
     video_filter = (
-        "[0:v]split=2[bg][fg];"
-        "[bg]scale=1080:1920:force_original_aspect_ratio=increase,"
-        "crop=1080:1920,boxblur=24:12[bgblur];"
-        "[fg]scale=1080:1920:force_original_aspect_ratio=decrease[fgfit];"
-        "[bgblur][fgfit]overlay=(W-w)/2:(H-h)/2,"
+        "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,"
+        "crop=1080:1920,"
         f"drawtext=fontfile={font}:textfile={title_file}:fontcolor=white:fontsize=42:"
         "borderw=3:bordercolor=black:x=(w-text_w)/2:y=90:box=1:boxcolor=black@0.45:boxborderw=16,"
-        f"subtitles=filename={captions_file}:force_style='FontName=DejaVu Sans,FontSize=10,"
+        f"subtitles=filename={captions_file}:force_style='FontName=DejaVu Sans,FontSize=8,"
         "Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=1,"
         "Shadow=0,Alignment=2,MarginV=115'[v]"
     )
