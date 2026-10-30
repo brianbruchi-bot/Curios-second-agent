@@ -27,6 +27,14 @@ def test_make_story_uses_complete_sentences():
     assert "Soft light filters" in narration
 
 
+def test_title_overlay_never_truncates_mid_word():
+    title = "Hot Intergalactic Gas Chandra Discovers Rivers Of Gravity"
+    lines = main.format_title_overlay(title).splitlines()
+    assert len(lines) <= 2
+    assert lines[-1].endswith("…")
+    assert not lines[-1].endswith("Rivers")
+
+
 def test_make_srt_covers_full_duration(tmp_path):
     target = tmp_path / "captions.srt"
     main.make_srt("One two three four five six seven eight.", 8.0, target)
