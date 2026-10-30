@@ -177,3 +177,16 @@ def test_reusable_license_allowlist_and_restrictions():
     assert not main.is_reusable_license('CC BY-NC 4.0')
     assert not main.is_reusable_license('CC BY-ND 4.0')
     assert not main.is_reusable_license('All rights reserved')
+
+
+def test_youtube_oauth_validation_rejects_incomplete_credentials():
+    import upload_youtube
+    import pytest
+    with pytest.raises(ValueError, match='missing required fields'):
+        upload_youtube.validate_token_info({'client_id': 'example'})
+
+
+def test_youtube_oauth_validation_accepts_required_fields():
+    import upload_youtube
+    token = {'client_id': 'id', 'client_secret': 'secret', 'refresh_token': 'refresh', 'token_uri': 'https://oauth2.googleapis.com/token'}
+    assert upload_youtube.validate_token_info(token) is token
